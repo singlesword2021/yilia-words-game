@@ -16,16 +16,19 @@
   header p { color:#a08a76; margin-top:8px; font-size:16px; }
   main { max-width:720px; margin:0 auto; padding:0 16px 40px; }
   .list { display:flex; flex-direction:column; gap:14px; margin-top:24px; }
-  .item {
-    display:flex; align-items:center; justify-content:space-between;
+  .item { display:flex; align-items:center; justify-content:space-between;
     background:#fff; border-radius:16px; padding:18px 22px;
     box-shadow:0 3px 10px rgba(0,0,0,.06); cursor:pointer;
     border:2px solid transparent; transition:.2s; text-decoration:none; color:inherit;
   }
   .item:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); border-color:#e07856; }
   .item .date { font-size:18px; font-weight:800; color:#e07856; }
-  .item .desc { font-size:14px; color:#a08a76; margin-top:4px; }
+  .item .desc { font-size:15px; font-weight:600; color:#4a3f35; }
   .item .arrow { font-size:22px; color:#b08a5a; }
+  .date-group { background:#fff; border-radius:18px; padding:16px 20px; box-shadow:0 3px 10px rgba(0,0,0,.06); }
+  .date-group .date { font-size:18px; font-weight:800; color:#e07856; margin-bottom:10px; }
+  .lang-links { display:flex; gap:12px; flex-wrap:wrap; }
+  .lang-links .item { flex:1; min-width:150px; padding:14px 18px; }
   footer { text-align:center; color:#c0a88a; font-size:13px; padding:20px; }
 </style>
 </head>
@@ -36,10 +39,19 @@
 </header>
 <main>
   <div class="list" id="gameList">
-    <a class="item" href="2026-10-26/">
-      <div><div class="date">2026-10-26</div><div class="desc">第一组单词游戏</div></div>
-      <div class="arrow">→</div>
-    </a>
+    <div class="date-group">
+      <div class="date">📅 2026-10-26</div>
+      <div class="lang-links">
+        <a class="item" href="2026-10-26/">
+          <div><div class="desc">🇨🇳 中文版</div></div>
+          <div class="arrow">→</div>
+        </a>
+        <a class="item" href="2026-10-26/en.html">
+          <div><div class="desc">🇬🇧 English</div></div>
+          <div class="arrow">→</div>
+        </a>
+      </div>
+    </div>
   </div>
 </main>
 <footer>Made with ❤️ for Yilia</footer>
