@@ -54,18 +54,20 @@
   /* ---- 连连看 ---- */
   #match-wrap { text-align:center; }
   #match-col {
-    display:flex; gap:20px; justify-content:center; flex-wrap:wrap;
+    display:flex; gap:10px; justify-content:center;
+    /* 不换行，强制两列并排，避免手机上中文列被挤到下方 */
   }
-  .mcol { display:flex; flex-direction:column; gap:12px; min-width:200px; }
-  .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:4px; }
+  .mcol { display:flex; flex-direction:column; gap:10px; flex:1; max-width:300px; min-width:0; }
+  .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:2px; font-size:15px; }
   .mtile {
-    background:#fff; border-radius:12px; padding:12px 16px; cursor:pointer;
-    border:2px solid #e8d8c0; font-size:18px; font-weight:600;
-    transition:.15s; min-height:52px; display:flex; align-items:center; justify-content:center;
+    background:#fff; border-radius:10px; padding:10px 8px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:16px; font-weight:600;
+    transition:.15s; min-height:44px; display:flex; align-items:center; justify-content:center;
+    word-break:break-word; /* 长词/长释义自动换行 */
   }
   .mtile.sel { border-color:#e07856; background:#fbe8d8; }
   .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
-  #match-status { margin-top:18px; font-size:18px; color:#e07856; font-weight:700; }
+  #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
 
   /* ---- 选择题 ---- */
   #quiz-card {
