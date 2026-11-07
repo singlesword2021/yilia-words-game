@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>淘淘的英语单词小游戏</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+    background: linear-gradient(160deg,#fdf6e3 0%,#fbe4d6 100%);
+    min-height:100vh; color:#4a3f35;
+  }
+  header {
+    text-align:center; padding:28px 16px 10px;
+  }
+  header h1 { font-size:30px; color:#e07856; letter-spacing:2px; }
+  header p { color:#a08a76; margin-top:6px; font-size:15px; }
+  .tabs {
+    display:flex; justify-content:center; gap:12px; margin:18px auto 24px;
+    max-width:700px; flex-wrap:wrap;
+  }
+  .tab {
+    padding:10px 22px; border-radius:30px; cursor:pointer;
+    background:#fff; border:2px solid #e8c8a0; color:#b08a5a;
+    font-size:16px; font-weight:600; transition:.2s;
+  }
+  .tab.active { background:#e07856; border-color:#e07856; color:#fff; }
+  .tab:hover { transform:translateY(-2px); }
+  main { max-width:760px; margin:0 auto; padding:0 16px 40px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ---- 卡片模式 ---- */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+  .card {
+    background:#fff; border-radius:16px; padding:16px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.06); transition:.2s;
+    border:2px solid transparent; position:relative;
+  }
+  .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
+  .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
+  .card .example {
+    font-size:13px; color:#a08a76; margin-top:8px; line-height:1.5;
+    border-top:1px dashed #e8d8c0; padding-top:8px;
+  }
+  .card .self { position:absolute; top:8px; right:8px; font-size:15px; }
+  .card .self .k { cursor:pointer; margin-left:3px; }
+  .card.known { border-color:#9ccb8a; }
+  .card.unknown { border-color:#e8a08a; }
+
+  /* ---- 连连看 ---- */
+  #match-wrap { text-align:center; }
+  #match-col {
+    display:flex; gap:20px; justify-content:center; flex-wrap:wrap;
+  }
+  .mcol { display:flex; flex-direction:column; gap:12px; min-width:200px; }
+  .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:4px; }
+  .mtile {
+    background:#fff; border-radius:12px; padding:12px 16px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:18px; font-weight:600;
+    transition:.15s; min-height:52px; display:flex; align-items:center; justify-content:center;
+  }
+  .mtile.sel { border-color:#e07856; background:#fbe8d8; }
+  .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
+  #match-status { margin-top:18px; font-size:18px; color:#e07856; font-weight:700; }
+
+  /* ---- 选择题 ---- */
+  #quiz-card {
+    background:#fff; border-radius:20px; padding:30px; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.06); max-width:560px; margin:0 auto;
+  }
+  #quiz-word { font-size:42px; font-weight:800; color:#e07856; }
+  #quiz-ph { font-size:16px; color:#b0a08a; margin-top:4px; }
+  #quiz-q { font-size:15px; color:#a08a76; margin-top:8px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; }
+  .opt {
+    background:#fdf3e3; border-radius:12px; padding:16px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:18px; font-weight:600; transition:.15s;
+  }
+  .opt:hover { border-color:#e07856; }
+  .opt.correct { border-color:#9ccb8a; background:#eef7ea; }
+  .opt.wrong { border-color:#e8a08a; background:#fdeaea; }
+  .opt:disabled { opacity:.6; cursor:default; }
+  #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
+  #quiz-score { color:#e07856; font-weight:700; }
+  #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
+  .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐹 淘淘的单词闯关</h1>
+  <p>主题：草原土拨鼠 Prairie Dogs · 共 18 个单词</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-panel="cards">📇 单词卡片</div>
+  <div class="tab" data-panel="match">🧩 连连看</div>
+  <div class="tab" data-panel="quiz">🎯 选择题</div>
+</div>
+
+<main>
+  <!-- 卡片 -->
+  <div class="panel active" id="panel-cards">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- 连连看 -->
+  <div class="panel" id="panel-match">
+    <div id="match-wrap">
+      <div id="match-col"></div>
+      <div id="match-status"></div>
+    </div>
+  </div>
+
+  <!-- 选择题 -->
+  <div class="panel" id="panel-quiz">
+    <div id="quiz-card"></div>
+  </div>
+</main>
+
+<div class="foot">每课更新 · 记牢新单词，上课更轻松 🌟</div>
+
+<script>
+const WORDS = [{"word": "journey", "phonetic": "/ˈdʒɜːrni/", "meaning": "旅行，旅程", "example": "I am on a journey. My trip is to a prairie.", "hint": "My trip is to a prairie → 一次出行就是一次 journey"}, {"word": "nature", "phonetic": "/ˈneɪtʃər/", "meaning": "自然，大自然", "example": "The nature, the habitat — we've already talked about these words.", "hint": "看到很多动物、草原、森林 → 大自然"}, {"word": "habitat", "phonetic": "/ˈhæbɪtæt/", "meaning": "栖息地，住处", "example": "Is it okay for us to go out from our habitat?", "hint": "动物们住的地方就是 habitat"}, {"word": "restless", "phonetic": "/ˈrestləs/", "meaning": "焦躁不安的，坐立不安的", "example": "Pete is the guard and he is restless. He cannot rest because he is always looking around for danger.", "hint": "rest + less → 无法休息 → 焦躁"}, {"word": "spy", "phonetic": "/spaɪ/", "meaning": "间谍；暗中监视", "example": "The spy is a person who watches others secretly.", "hint": "spy → 复数 spies，暗中观察别人的人"}, {"word": "badger", "phonetic": "/ˈbædʒər/", "meaning": "獾（一种动物）", "example": "When Pete sees a large badger, he gives a loud bark.", "hint": "一种会捕猎 prairie dog 的动物"}, {"word": "guard", "phonetic": "/ɡɑːrd/", "meaning": "守卫，哨兵；守护", "example": "Pete is the guard and he is restless.", "hint": "负责放哨、保护大家的角色"}, {"word": "watchful", "phonetic": "/ˈwɒtʃfl/", "meaning": "警惕的，留心的", "example": "The watchful guard is able to escape into the burrow.", "hint": "watch + ful → 一直盯着看 → 警惕"}, {"word": "escape", "phonetic": "/ɪˈskeɪp/", "meaning": "逃跑，逃脱", "example": "The watchful guard is able to escape into the burrow. He gets away from danger.", "hint": "get away from danger → 逃脱危险"}, {"word": "recognize", "phonetic": "/ˈrekəɡnaɪz/", "meaning": "认出，辨认出", "example": "His family recognizes the warning.", "hint": "看到熟悉的东西一下子认出来"}, {"word": "scare", "phonetic": "/skeər/", "meaning": "使害怕，惊吓", "example": "A scare? No, the prairie dog. When he sees it, he gives a loud bark.", "hint": "afraid → 害怕，被吓到"}, {"word": "hunt", "phonetic": "/hʌnt/", "meaning": "捕猎，打猎", "example": "The badgers are the ones who hunt prairie dogs.", "hint": "badger 追捕 prairie dog 的行为"}, {"word": "predator", "phonetic": "/ˈpredətər/", "meaning": "捕食者，掠食者", "example": "So the badgers are the predators of the prairie dogs.", "hint": "会吃掉别的小动物的家伙"}, {"word": "burrow", "phonetic": "/ˈbɜːroʊ/", "meaning": "洞穴，地洞", "example": "Some hide in tall grasses and some jump into the burrow.", "hint": "土拨鼠挖的地下的家"}, {"word": "groom", "phonetic": "/ɡruːm/", "meaning": "梳理（毛发）", "example": "They can also groom each other to work on their burrow.", "hint": "互相整理毛发"}, {"word": "prairie", "phonetic": "/ˈpreəri/", "meaning": "草原，大草原", "example": "My trip is to a prairie. Badgers live on prairies.", "hint": "一望无际的大草原"}, {"word": "dangerous", "phonetic": "/ˈdeɪndʒərəs/", "meaning": "危险的", "example": "How do you pronounce this one again? Dangerous.", "hint": "danger + ous → 有危险的"}, {"word": "communicate", "phonetic": "/kəˈmjuːnɪkeɪt/", "meaning": "交流，沟通", "example": "Prairie dogs can make eleven different sounds to communicate with each other.", "hint": "用声音互相传达信息"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
+
+/* ---- 标签切换 ---- */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+  });
+});
+
+/* ---- 卡片模式 ---- */
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = WORDS.map(w => `
+    <div class="card">
+      <div class="self"></div>
+      <div class="en">${w.word}</div>
+      <div class="ph">${w.phonetic}</div>
+      <div class="meaning">${w.meaning}</div>
+      <div class="example">📖 ${w.example}</div>
+    </div>`).join('');
+  // 自己评测：认识/不认识
+  grid.querySelectorAll('.card').forEach((card, i) => {
+    const self = card.querySelector('.self');
+    const known = document.createElement('span');
+    known.className = 'k'; known.textContent = '✅'; known.title = '我认识';
+    const unknown = document.createElement('span');
+    unknown.className = 'k'; unknown.textContent = '🤔'; unknown.title = '不认识';
+    self.appendChild(known); self.appendChild(unknown);
+    known.onclick = e => { e.stopPropagation(); card.classList.remove('unknown'); card.classList.add('known'); };
+    unknown.onclick = e => { e.stopPropagation(); card.classList.remove('known'); card.classList.add('unknown'); };
+  });
+}
+
+/* ---- 连连看 ---- */
+let matchState = [];
+function shuffle(a) { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function renderMatch() {
+  matchState = WORDS.map(w => ({...w, matched:false}));
+  const left = shuffle(matchState.map(w => w.word));
+  const right = shuffle(matchState.map(w => w.meaning));
+  const col = document.getElementById('match-col');
+  col.innerHTML = `
+    <div class="mcol"><h3>英文</h3><div id="ml">${left.map((w,i)=>`<div class="mtile" data-side="l" data-idx="${i}" data-word="${w}">${w}</div>`).join('')}</div></div>
+    <div class="mcol"><h3>中文</h3><div id="mr">${right.map((m,i)=>`<div class="mtile" data-side="r" data-idx="${i}" data-word="${m}">${m}</div>`).join('')}</div></div>`;
+  let selL = null, selR = null;
+  const status = document.getElementById('match-status');
+  function checkDone() {
+    if (matchState.every(w => w.matched)) status.textContent = '🎉 全部配对成功！太棒了！';
+  }
+  col.addEventListener('click', e => {
+    const tile = e.target.closest('.mtile');
+    if (!tile || tile.classList.contains('matched')) return;
+    const word = tile.dataset.word;
+    const side = tile.dataset.side;
+    if (side === 'l') {
+      if (selL) selL.classList.remove('sel');
+      selL = tile; tile.classList.add('sel');
+    } else {
+      if (selR) selR.classList.remove('sel');
+      selR = tile; tile.classList.add('sel');
+    }
+    if (selL && selR) {
+      const lw = selL.dataset.word, rw = selR.dataset.word;
+      const target = matchState.find(w => w.word === lw);
+      if (target && target.meaning === rw) {
+        selL.classList.add('matched'); selR.classList.add('matched');
+        selL.classList.remove('sel'); selR.classList.remove('sel');
+        target.matched = true;
+        status.textContent = '✅ 配对正确！';
+        selL = selR = null; checkDone();
+      } else {
+        status.textContent = '❌ 不对哦，再试试';
+        setTimeout(() => { selL.classList.remove('sel'); selR.classList.remove('sel'); selL=selR=null; }, 500);
+      }
+    }
+  });
+  status.textContent = '点击英文，再点对应的中文';
+}
+
+/* ---- 选择题 ---- */
+function renderQuiz() {
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = [];
+  showQuizQ();
+}
+function showQuizQ() {
+  const card = document.getElementById('quiz-card');
+  if (quizIdx >= quizTotal) {
+    card.innerHTML = `
+      <div id="quiz-done">🏆 完成！你答对了 ${quizScore} / ${quizTotal} 题</div>
+      <button id="quiz-restart" onclick="renderQuiz()">再玩一次</button>`;
+    return;
+  }
+  const w = WORDS[quizIdx];
+  const isEn2Zh = Math.random() < 0.5;
+  const opts = shuffle([...WORDS]);
+  const correct = w.meaning;
+  const choices = [w, ...opts.filter(o => o.meaning !== w.meaning).slice(0,3)];
+  shuffle(choices);
+  card.innerHTML = `
+    <div id="quiz-word">${isEn2Zh ? w.word : w.meaning}</div>
+    <div id="quiz-ph">${isEn2Zh ? w.phonetic : ''}</div>
+    <div id="quiz-q">${isEn2Zh ? '选出正确的中文意思' : '这个意思对应的英文单词是？'}</div>
+    <div class="opts">${choices.map(c => `<div class="opt" data-m="${c.meaning}" data-w="${c.word}">${isEn2Zh ? c.meaning : c.word}</div>`).join('')}</div>
+    <div id="quiz-progress">第 ${quizIdx+1} / ${quizTotal} 题 · 得分 <span id="quiz-score">${quizScore}</span></div>`;
+  let answered = false;
+  card.querySelectorAll('.opt').forEach(o => {
+    o.addEventListener('click', () => {
+      if (answered) return; answered = true;
+      const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      if (ok) { o.classList.add('correct'); quizScore++; }
+      else { o.classList.add('wrong');
+        card.querySelectorAll('.opt').forEach(x => { if (isEn2Zh ? x.dataset.m===correct : x.dataset.w===w.word) x.classList.add('correct'); });
+      }
+      document.getElementById('quiz-score').textContent = quizScore;
+      setTimeout(() => { quizIdx++; showQuizQ(); }, 1100);
+    });
+  });
+}
+
+renderCards();
+renderMatch();
+renderQuiz();
+</script>
+</body>
+</html>
