@@ -239,6 +239,7 @@ function renderMatch() {
         selL = selR = null; checkDone();
       } else {
         status.textContent = '❌ Not quite, try again';
+        soundWrong();
         setTimeout(() => { selL.classList.remove('sel'); selR.classList.remove('sel'); selL=selR=null; }, 500);
       }
     }
