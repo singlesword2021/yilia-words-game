@@ -130,7 +130,39 @@
 <div class="foot">New words every lesson · learn and shine 🌟</div>
 
 <script>
-const WORDS = [{"word": "journey", "phonetic": "/ˈdʒɜːrni/", "meaning": "旅行，旅程", "example": "I am on a journey. My trip is to a prairie.", "hint": "My trip is to a prairie → 一次出行就是一次 journey"}, {"word": "nature", "phonetic": "/ˈneɪtʃər/", "meaning": "自然，大自然", "example": "The nature, the habitat — we've already talked about these words.", "hint": "看到很多动物、草原、森林 → 大自然"}, {"word": "habitat", "phonetic": "/ˈhæbɪtæt/", "meaning": "栖息地，住处", "example": "Is it okay for us to go out from our habitat?", "hint": "动物们住的地方就是 habitat"}, {"word": "restless", "phonetic": "/ˈrestləs/", "meaning": "焦躁不安的，坐立不安的", "example": "Pete is the guard and he is restless. He cannot rest because he is always looking around for danger.", "hint": "rest + less → 无法休息 → 焦躁"}, {"word": "spy", "phonetic": "/spaɪ/", "meaning": "间谍；暗中监视", "example": "The spy is a person who watches others secretly.", "hint": "spy → 复数 spies，暗中观察别人的人"}, {"word": "badger", "phonetic": "/ˈbædʒər/", "meaning": "獾（一种动物）", "example": "When Pete sees a large badger, he gives a loud bark.", "hint": "一种会捕猎 prairie dog 的动物"}, {"word": "guard", "phonetic": "/ɡɑːrd/", "meaning": "守卫，哨兵；守护", "example": "Pete is the guard and he is restless.", "hint": "负责放哨、保护大家的角色"}, {"word": "watchful", "phonetic": "/ˈwɒtʃfl/", "meaning": "警惕的，留心的", "example": "The watchful guard is able to escape into the burrow.", "hint": "watch + ful → 一直盯着看 → 警惕"}, {"word": "escape", "phonetic": "/ɪˈskeɪp/", "meaning": "逃跑，逃脱", "example": "The watchful guard is able to escape into the burrow. He gets away from danger.", "hint": "get away from danger → 逃脱危险"}, {"word": "recognize", "phonetic": "/ˈrekəɡnaɪz/", "meaning": "认出，辨认出", "example": "His family recognizes the warning.", "hint": "看到熟悉的东西一下子认出来"}, {"word": "scare", "phonetic": "/skeər/", "meaning": "使害怕，惊吓", "example": "A scare? No, the prairie dog. When he sees it, he gives a loud bark.", "hint": "afraid → 害怕，被吓到"}, {"word": "hunt", "phonetic": "/hʌnt/", "meaning": "捕猎，打猎", "example": "The badgers are the ones who hunt prairie dogs.", "hint": "badger 追捕 prairie dog 的行为"}, {"word": "predator", "phonetic": "/ˈpredətər/", "meaning": "捕食者，掠食者", "example": "So the badgers are the predators of the prairie dogs.", "hint": "会吃掉别的小动物的家伙"}, {"word": "burrow", "phonetic": "/ˈbɜːroʊ/", "meaning": "洞穴，地洞", "example": "Some hide in tall grasses and some jump into the burrow.", "hint": "土拨鼠挖的地下的家"}, {"word": "groom", "phonetic": "/ɡruːm/", "meaning": "梳理（毛发）", "example": "They can also groom each other to work on their burrow.", "hint": "互相整理毛发"}, {"word": "prairie", "phonetic": "/ˈpreəri/", "meaning": "草原，大草原", "example": "My trip is to a prairie. Badgers live on prairies.", "hint": "一望无际的大草原"}, {"word": "dangerous", "phonetic": "/ˈdeɪndʒərəs/", "meaning": "危险的", "example": "How do you pronounce this one again? Dangerous.", "hint": "danger + ous → 有危险的"}, {"word": "communicate", "phonetic": "/kəˈmjuːnɪkeɪt/", "meaning": "交流，沟通", "example": "Prairie dogs can make eleven different sounds to communicate with each other.", "hint": "用声音互相传达信息"}];
+/* ---- Sound effects (Web Audio API, no external files) ---- */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playNote(freq, start, dur, type='sine', vol=0.18) {
+  const ctx = ensureAudio(); if (!ctx) return;
+  const t = ctx.currentTime + start;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function soundCorrect() {
+  playNote(523.25, 0, 0.15, 'triangle', 0.2);
+  playNote(659.25, 0.12, 0.18, 'triangle', 0.2);
+  playNote(783.99, 0.26, 0.25, 'triangle', 0.2);
+}
+function soundWrong() {
+  playNote(311.13, 0, 0.18, 'sawtooth', 0.14);
+  playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14);
+}
+
+[{"word": "journey", "phonetic": "/ˈdʒɜːrni/", "meaning": "旅行，旅程", "example": "I am on a journey. My trip is to a prairie.", "hint": "My trip is to a prairie → 一次出行就是一次 journey"}, {"word": "nature", "phonetic": "/ˈneɪtʃər/", "meaning": "自然，大自然", "example": "The nature, the habitat — we've already talked about these words.", "hint": "看到很多动物、草原、森林 → 大自然"}, {"word": "habitat", "phonetic": "/ˈhæbɪtæt/", "meaning": "栖息地，住处", "example": "Is it okay for us to go out from our habitat?", "hint": "动物们住的地方就是 habitat"}, {"word": "restless", "phonetic": "/ˈrestləs/", "meaning": "焦躁不安的，坐立不安的", "example": "Pete is the guard and he is restless. He cannot rest because he is always looking around for danger.", "hint": "rest + less → 无法休息 → 焦躁"}, {"word": "spy", "phonetic": "/spaɪ/", "meaning": "间谍；暗中监视", "example": "The spy is a person who watches others secretly.", "hint": "spy → 复数 spies，暗中观察别人的人"}, {"word": "badger", "phonetic": "/ˈbædʒər/", "meaning": "獾（一种动物）", "example": "When Pete sees a large badger, he gives a loud bark.", "hint": "一种会捕猎 prairie dog 的动物"}, {"word": "guard", "phonetic": "/ɡɑːrd/", "meaning": "守卫，哨兵；守护", "example": "Pete is the guard and he is restless.", "hint": "负责放哨、保护大家的角色"}, {"word": "watchful", "phonetic": "/ˈwɒtʃfl/", "meaning": "警惕的，留心的", "example": "The watchful guard is able to escape into the burrow.", "hint": "watch + ful → 一直盯着看 → 警惕"}, {"word": "escape", "phonetic": "/ɪˈskeɪp/", "meaning": "逃跑，逃脱", "example": "The watchful guard is able to escape into the burrow. He gets away from danger.", "hint": "get away from danger → 逃脱危险"}, {"word": "recognize", "phonetic": "/ˈrekəɡnaɪz/", "meaning": "认出，辨认出", "example": "His family recognizes the warning.", "hint": "看到熟悉的东西一下子认出来"}, {"word": "scare", "phonetic": "/skeər/", "meaning": "使害怕，惊吓", "example": "A scare? No, the prairie dog. When he sees it, he gives a loud bark.", "hint": "afraid → 害怕，被吓到"}, {"word": "hunt", "phonetic": "/hʌnt/", "meaning": "捕猎，打猎", "example": "The badgers are the ones who hunt prairie dogs.", "hint": "badger 追捕 prairie dog 的行为"}, {"word": "predator", "phonetic": "/ˈpredətər/", "meaning": "捕食者，掠食者", "example": "So the badgers are the predators of the prairie dogs.", "hint": "会吃掉别的小动物的家伙"}, {"word": "burrow", "phonetic": "/ˈbɜːroʊ/", "meaning": "洞穴，地洞", "example": "Some hide in tall grasses and some jump into the burrow.", "hint": "土拨鼠挖的地下的家"}, {"word": "groom", "phonetic": "/ɡruːm/", "meaning": "梳理（毛发）", "example": "They can also groom each other to work on their burrow.", "hint": "互相整理毛发"}, {"word": "prairie", "phonetic": "/ˈpreəri/", "meaning": "草原，大草原", "example": "My trip is to a prairie. Badgers live on prairies.", "hint": "一望无际的大草原"}, {"word": "dangerous", "phonetic": "/ˈdeɪndʒərəs/", "meaning": "危险的", "example": "How do you pronounce this one again? Dangerous.", "hint": "danger + ous → 有危险的"}, {"word": "communicate", "phonetic": "/kəˈmjuːnɪkeɪt/", "meaning": "交流，沟通", "example": "Prairie dogs can make eleven different sounds to communicate with each other.", "hint": "用声音互相传达信息"}];
 let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
 
 /* ---- 标签切换 ---- */
@@ -203,6 +235,7 @@ function renderMatch() {
         selL.classList.remove('sel'); selR.classList.remove('sel');
         target.matched = true;
         status.textContent = '✅ Correct match!';
+        soundCorrect();
         selL = selR = null; checkDone();
       } else {
         status.textContent = '❌ Not quite, try again';
@@ -244,8 +277,8 @@ function showQuizQ() {
       if (answered) return; answered = true;
       const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
       card.querySelectorAll('.opt').forEach(x => x.disabled = true);
-      if (ok) { o.classList.add('correct'); quizScore++; }
-      else { o.classList.add('wrong');
+      if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
+      else { o.classList.add('wrong'); soundWrong();
         card.querySelectorAll('.opt').forEach(x => { if (isEn2Zh ? x.dataset.m===correct : x.dataset.w===w.word) x.classList.add('correct'); });
       }
       document.getElementById('quiz-score').textContent = quizScore;
