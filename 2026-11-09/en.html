@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Making Predictions</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+    background: linear-gradient(160deg,#fdf6e3 0%,#fbe4d6 100%);
+    min-height:100vh; color:#4a3f35;
+  }
+  header {
+    text-align:center; padding:28px 16px 10px;
+  }
+  header h1 { font-size:30px; color:#e07856; letter-spacing:2px; }
+  header p { color:#a08a76; margin-top:6px; font-size:15px; }
+  .tabs {
+    display:flex; justify-content:center; gap:12px; margin:18px auto 24px;
+    max-width:700px; flex-wrap:wrap;
+  }
+  .tab {
+    padding:10px 22px; border-radius:30px; cursor:pointer;
+    background:#fff; border:2px solid #e8c8a0; color:#b08a5a;
+    font-size:16px; font-weight:600; transition:.2s;
+  }
+  .tab.active { background:#e07856; border-color:#e07856; color:#fff; }
+  .tab:hover { transform:translateY(-2px); }
+  main { max-width:760px; margin:0 auto; padding:0 16px 40px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ---- 卡片模式 ---- */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+  .card {
+    background:#fff; border-radius:16px; padding:16px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.06); transition:.2s;
+    border:2px solid transparent; position:relative;
+  }
+  .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
+  .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
+  .card .example {
+    font-size:13px; color:#a08a76; margin-top:8px; line-height:1.5;
+    border-top:1px dashed #e8d8c0; padding-top:8px;
+  }
+  .card .self { position:absolute; top:8px; right:8px; font-size:15px; }
+  .card .self .k { cursor:pointer; margin-left:3px; }
+  .card.known { border-color:#9ccb8a; }
+  .card.unknown { border-color:#e8a08a; }
+
+  /* ---- 连连看 ---- */
+  #match-wrap { text-align:center; }
+  #match-col {
+    display:flex; gap:10px; justify-content:center;
+  }
+  .mcol { display:flex; flex-direction:column; gap:10px; flex:1; max-width:300px; min-width:0; }
+  .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:2px; font-size:15px; }
+  .mtile {
+    background:#fff; border-radius:10px; padding:10px 8px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:16px; font-weight:600;
+    transition:.15s; min-height:44px; display:flex; align-items:center; justify-content:center;
+    word-break:break-word;
+  }
+  .mtile.sel { border-color:#e07856; background:#fbe8d8; }
+  .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
+  #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
+
+  /* ---- 选择题 ---- */
+  #quiz-card {
+    background:#fff; border-radius:20px; padding:30px; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.06); max-width:560px; margin:0 auto;
+  }
+  #quiz-word { font-size:42px; font-weight:800; color:#e07856; }
+  #quiz-ph { font-size:16px; color:#b0a08a; margin-top:4px; }
+  #quiz-q { font-size:15px; color:#a08a76; margin-top:8px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; }
+  .opt {
+    background:#fdf3e3; border-radius:12px; padding:16px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:18px; font-weight:600; transition:.15s;
+  }
+  .opt:hover { border-color:#e07856; }
+  .opt.correct { border-color:#9ccb8a; background:#eef7ea; }
+  .opt.wrong { border-color:#e8a08a; background:#fdeaea; }
+  .opt:disabled { opacity:.6; cursor:default; }
+  #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
+  #quiz-score { color:#e07856; font-weight:700; }
+  #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
+  .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Making Predictions</h1>
+  <p>Theme: Prairie Dogs · 18 words</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-panel="cards">📇 Flashcards</div>
+  <div class="tab" data-panel="match">🧩 Matching</div>
+  <div class="tab" data-panel="quiz">🎯 Quiz</div>
+</div>
+
+<main>
+  <!-- 卡片 -->
+  <div class="panel active" id="panel-cards">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- 连连看 -->
+  <div class="panel" id="panel-match">
+    <div id="match-wrap">
+      <div id="match-col"></div>
+      <div id="match-status"></div>
+    </div>
+  </div>
+
+  <!-- 选择题 -->
+  <div class="panel" id="panel-quiz">
+    <div id="quiz-card"></div>
+  </div>
+</main>
+
+<div class="foot">New words every lesson · learn and shine 🌟</div>
+
+<script>
+/* ---- Sound effects (Web Audio API, no external files) ---- */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playNote(freq, start, dur, type='sine', vol=0.18) {
+  const ctx = ensureAudio(); if (!ctx) return;
+  const t = ctx.currentTime + start;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function soundCorrect() {
+  playNote(523.25, 0, 0.15, 'triangle', 0.2);
+  playNote(659.25, 0.12, 0.18, 'triangle', 0.2);
+  playNote(783.99, 0.26, 0.25, 'triangle', 0.2);
+}
+function soundWrong() {
+  playNote(311.13, 0, 0.18, 'sawtooth', 0.14);
+  playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14);
+}
+
+const WORDS = [{"word": "prediction", "phonetic": "/prɪˈdɪkʃn/", "meaning": "预测", "example": "Today we are going to study about predictions — making predictions.", "hint": "提前猜出接下来会发生什么"}, {"word": "predict", "phonetic": "/prɪˈdɪkt/", "meaning": "预测", "example": "Use what you already know and what you read in the selection to help you predict.", "hint": "pre + dict → 提前说出 → 预测"}, {"word": "selection", "phonetic": "/sɪˈlekʃn/", "meaning": "文章；选文", "example": "Selection is another term for article, text, or story.", "hint": "故事、文章、要读的文本都叫 selection"}, {"word": "already", "phonetic": "/ɔːlˈredi/", "meaning": "已经", "example": "Use what you already know and what you read in the selection.", "hint": "already know → 此刻已经知道的事"}, {"word": "revise", "phonetic": "/rɪˈvaɪz/", "meaning": "修改，修正", "example": "We can confirm, verify, or revise your predictions.", "hint": "re + vise → 再看一遍 → 修改"}, {"word": "confirm", "phonetic": "/kənˈfɜːrm/", "meaning": "确认", "example": "We can confirm, we can verify, or we can revise your predictions.", "hint": "确定、核实某个想法"}, {"word": "verify", "phonetic": "/ˈverɪfaɪ/", "meaning": "核实，证实", "example": "We can confirm, we can verify, or we can revise your predictions.", "hint": "检查一下是不是对的"}, {"word": "prairie", "phonetic": "/ˈpreəri/", "meaning": "草原，大草原", "example": "Pete was able to guard the prairie dogs in the morning.", "hint": "一大片开阔的草地"}, {"word": "badger", "phonetic": "/ˈbædʒər/", "meaning": "獾（一种动物）", "example": "The badger cannot go after all those prairie dogs.", "hint": "一种会捕猎 prairie dog 的动物"}, {"word": "burrow", "phonetic": "/ˈbɜːroʊ/", "meaning": "洞穴，地洞", "example": "The watchful guard is able to escape into the burrow.", "hint": "土拨鼠挖的地下的家"}, {"word": "guard", "phonetic": "/ɡɑːrd/", "meaning": "守卫，守护", "example": "Pete was able to guard the prairie dogs in the morning.", "hint": "负责放哨、保护大家的角色"}, {"word": "watchful", "phonetic": "/ˈwɒtʃfl/", "meaning": "警惕的，留心的", "example": "The watchful guard is able to escape into the burrow.", "hint": "watch + ful → 一直盯着看 → 警惕"}, {"word": "escape", "phonetic": "/ɪˈskeɪp/", "meaning": "逃跑，逃脱", "example": "The watchful guard is able to escape into the burrow.", "hint": "get away from danger → 逃脱危险"}, {"word": "danger", "phonetic": "/ˈdeɪndʒər/", "meaning": "危险", "example": "I am glad he is able to get away from danger.", "hint": "可能会受伤的情况"}, {"word": "dangerous", "phonetic": "/ˈdeɪndʒərəs/", "meaning": "危险的", "example": "How do you pronounce this one again? Dangerous.", "hint": "danger + ous → 有危险的"}, {"word": "scare", "phonetic": "/skeər/", "meaning": "使害怕，惊吓", "example": "It says a scare. The badger gives a loud bark.", "hint": "afraid → 害怕，被吓到"}, {"word": "bark", "phonetic": "/bɑːrk/", "meaning": "吠叫", "example": "He gives a loud bark when he sees the badger.", "hint": "狗或土拨鼠发出的叫声"}, {"word": "clue", "phonetic": "/kluː/", "meaning": "线索", "example": "Context clues — you get the meaning of the word through the words around it.", "hint": "hint → 提示、线索"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
+
+/* ---- 标签切换 ---- */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+  });
+});
+
+/* ---- 卡片模式 ---- */
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = WORDS.map(w => `
+    <div class="card">
+      <div class="self"></div>
+      <div class="en">${w.word}</div>
+      <div class="ph">${w.phonetic}</div>
+      <div class="meaning">${w.meaning}</div>
+      <div class="example">📖 ${w.example}</div>
+    </div>`).join('');
+  // 自己评测：认识/Not sure
+  grid.querySelectorAll('.card').forEach((card, i) => {
+    const self = card.querySelector('.self');
+    const known = document.createElement('span');
+    known.className = 'k'; known.textContent = '✅'; known.title = 'I know it';
+    const unknown = document.createElement('span');
+    unknown.className = 'k'; unknown.textContent = '🤔'; unknown.title = 'Not sure';
+    self.appendChild(known); self.appendChild(unknown);
+    known.onclick = e => { e.stopPropagation(); card.classList.remove('unknown'); card.classList.add('known'); };
+    unknown.onclick = e => { e.stopPropagation(); card.classList.remove('known'); card.classList.add('unknown'); };
+  });
+}
+
+/* ---- 连连看 ---- */
+let matchState = [];
+function shuffle(a) { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function renderMatch() {
+  matchState = WORDS.map(w => ({...w, matched:false}));
+  const left = shuffle(matchState.map(w => w.word));
+  const right = shuffle(matchState.map(w => w.meaning));
+  const col = document.getElementById('match-col');
+  col.innerHTML = `
+    <div class="mcol"><h3>English</h3><div id="ml">${left.map((w,i)=>`<div class="mtile" data-side="l" data-idx="${i}" data-word="${w}">${w}</div>`).join('')}</div></div>
+    <div class="mcol"><h3>Chinese</h3><div id="mr">${right.map((m,i)=>`<div class="mtile" data-side="r" data-idx="${i}" data-word="${m}">${m}</div>`).join('')}</div></div>`;
+  let selL = null, selR = null;
+  const status = document.getElementById('match-status');
+  function checkDone() {
+    if (matchState.every(w => w.matched)) status.textContent = '🎉 All matched! Great job!';
+  }
+  col.addEventListener('click', e => {
+    const tile = e.target.closest('.mtile');
+    if (!tile || tile.classList.contains('matched')) return;
+    const word = tile.dataset.word;
+    const side = tile.dataset.side;
+    if (side === 'l') {
+      if (selL) selL.classList.remove('sel');
+      selL = tile; tile.classList.add('sel');
+    } else {
+      if (selR) selR.classList.remove('sel');
+      selR = tile; tile.classList.add('sel');
+    }
+    if (selL && selR) {
+      const lw = selL.dataset.word, rw = selR.dataset.word;
+      const target = matchState.find(w => w.word === lw);
+      if (target && target.meaning === rw) {
+        selL.classList.add('matched'); selR.classList.add('matched');
+        selL.classList.remove('sel'); selR.classList.remove('sel');
+        target.matched = true;
+        status.textContent = '✅ Correct match!';
+        soundCorrect();
+        selL = selR = null; checkDone();
+      } else {
+        status.textContent = '❌ Not quite, try again';
+        soundWrong();
+        setTimeout(() => { selL.classList.remove('sel'); selR.classList.remove('sel'); selL=selR=null; }, 500);
+      }
+    }
+  });
+  status.textContent = 'Click an English word, then its Chinese meaning';
+}
+
+/* ---- 选择题 ---- */
+function renderQuiz() {
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = [];
+  showQuizQ();
+}
+function showQuizQ() {
+  const card = document.getElementById('quiz-card');
+  if (quizIdx >= quizTotal) {
+    card.innerHTML = `
+      <div id="quiz-done">🏆 Done! You got ${quizScore} / ${quizTotal} right</div>
+      <button id="quiz-restart" onclick="renderQuiz()">Play again</button>`;
+    return;
+  }
+  const w = WORDS[quizIdx];
+  const isEn2Zh = Math.random() < 0.5;
+  const opts = shuffle([...WORDS]);
+  const correct = w.meaning;
+  const choices = [w, ...opts.filter(o => o.meaning !== w.meaning).slice(0,3)];
+  shuffle(choices);
+  card.innerHTML = `
+    <div id="quiz-word">${isEn2Zh ? w.word : w.meaning}</div>
+    <div id="quiz-ph">${isEn2Zh ? w.phonetic : ''}</div>
+    <div id="quiz-q">${isEn2Zh ? 'Choose the correct Chinese meaning' : 'Which English word matches this meaning?'}</div>
+    <div class="opts">${choices.map(c => `<div class="opt" data-m="${c.meaning}" data-w="${c.word}">${isEn2Zh ? c.meaning : c.word}</div>`).join('')}</div>
+    <div id="quiz-progress">Question ${quizIdx+1} / ${quizTotal} · Score <span id="quiz-score">${quizScore}</span></div>`;
+  let answered = false;
+  card.querySelectorAll('.opt').forEach(o => {
+    o.addEventListener('click', () => {
+      if (answered) return; answered = true;
+      const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
+      else { o.classList.add('wrong'); soundWrong();
+        card.querySelectorAll('.opt').forEach(x => { if (isEn2Zh ? x.dataset.m===correct : x.dataset.w===w.word) x.classList.add('correct'); });
+      }
+      document.getElementById('quiz-score').textContent = quizScore;
+      setTimeout(() => { quizIdx++; showQuizQ(); }, 1100);
+    });
+  });
+}
+
+renderCards();
+renderMatch();
+renderQuiz();
+</script>
+</body>
+</html>
