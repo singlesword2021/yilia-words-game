@@ -14,6 +14,15 @@
   header {
     text-align:center; padding:28px 16px 10px;
   }
+  .back-home {
+    position:fixed; top:14px; left:14px; z-index:99;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border-radius:30px;
+    background:#fff; border:2px solid #e8c8a0; color:#b08a5a;
+    font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); transition:.2s;
+  }
+  .back-home:hover { border-color:#e07856; color:#e07856; transform:translateY(-1px); }
   header h1 { font-size:30px; color:#e07856; letter-spacing:2px; }
   header p { color:#a08a76; margin-top:6px; font-size:15px; }
   .tabs {
@@ -127,6 +136,7 @@
 </head>
 <body>
 <header>
+  <a class="back-home" href="../">← Back to List</a>
   <h1>🐹 Yilia 的单词闯关</h1>
   <p>Topic: A Baby Turtle's Journey · 18 words</p>
 </header>
