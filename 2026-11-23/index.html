@@ -39,7 +39,16 @@
     border:2px solid transparent; position:relative;
   }
   .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en-row { display:flex; align-items:center; gap:8px; }
   .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .speak {
+    border:none; background:#fbe8d8; color:#e07856; width:32px; height:32px;
+    border-radius:50%; font-size:15px; cursor:pointer; flex-shrink:0; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; transition:.15s;
+    padding:0;
+  }
+  .speak:hover { background:#e07856; color:#fff; transform:scale(1.08); }
+  .speak:active { transform:scale(.95); }
   .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
   .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
   .card .example {
@@ -68,6 +77,11 @@
   .mtile.sel { border-color:#e07856; background:#fbe8d8; }
   .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
   #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
+  .done-stats { display:block; margin-top:8px; font-size:13px; color:#a08a76; font-weight:400; }
+  #match-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
 
   /* ---- 选择题 ---- */
   #quiz-card {
@@ -89,8 +103,17 @@
   #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
   #quiz-score { color:#e07856; font-weight:700; }
   #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-review { margin-top:14px; text-align:left; }
+  #quiz-review .review-title { font-size:15px; color:#e07856; font-weight:700; margin-bottom:8px; }
+  #quiz-review .review-item {
+    background:#fdf3e3; border:1px solid #e8d8c0; border-radius:10px;
+    padding:8px 12px; font-size:14px; color:#4a3f35; margin-bottom:6px; line-height:1.5;
+    word-break:break-word;
+  }
+  #quiz-review .review-item.all-ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-stats { margin-top:14px; font-size:14px; color:#a08a76; }
   #quiz-restart {
-    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    margin-top:16px; padding:10px 26px; border:none; border-radius:30px;
     background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
   }
   .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
@@ -119,6 +142,7 @@
     <div id="match-wrap">
       <div id="match-col"></div>
       <div id="match-status"></div>
+      <button id="match-restart" onclick="renderMatch()">🔄 重新配对</button>
     </div>
   </div>
 
@@ -163,8 +187,61 @@ function soundWrong() {
   playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14); // Bb3
 }
 
-const WORDS = [{"word": "turtle", "phonetic": "/ˈtɜːrtl/", "meaning": "海龟", "example": "Turtle, Turtle, Watch Out! is the title of the story we read.", "hint": "故事主角，背着硬壳的海洋动物 → 海龟"}, {"word": "hatchling", "phonetic": "/ˈhætʃlɪŋ/", "meaning": "刚孵化的幼龟", "example": "These hatchlings, these small turtles, crawl across the beach.", "hint": "hatch（孵化）+ ling（小动物）→ 刚破壳的小龟 → 幼龟"}, {"word": "crawl", "phonetic": "/krɔːl/", "meaning": "爬行", "example": "The turtles are crawling toward the wrong light.", "hint": "用肚子慢慢挪动，像小海龟在沙滩上一样 → 爬行"}, {"word": "scurry", "phonetic": "/ˈskɜːri/", "meaning": "小碎步快跑", "example": "She scurries toward the ocean waves.", "hint": "s-curry，小短腿快速倒腾，像猫冲向猎物 → 快步跑"}, {"word": "wave", "phonetic": "/weɪv/", "meaning": "海浪", "example": "The waves carry the turtle toward the sea.", "hint": "海面上一道道涌起又落下的水 → 海浪"}, {"word": "current", "phonetic": "/ˈkɜːrənt/", "meaning": "水流；洋流", "example": "Currents carry her thousands of miles.", "hint": "cur + rent，海水的流动方向，把海龟带向远方 → 洋流"}, {"word": "flipper", "phonetic": "/ˈflɪpər/", "meaning": "鳍状肢", "example": "She pushes her flippers. She can swim.", "hint": "flip（拍打）+ per，海龟用来划水的扁平肢体 → 鳍"}, {"word": "seaweed", "phonetic": "/ˈsiːwiːd/", "meaning": "海草", "example": "She rests in patches of seaweed.", "hint": "sea（海）+ weed（草）→ 海里的植物 → 海草"}, {"word": "sargassum", "phonetic": "/sɑːrˈɡæsəm/", "meaning": "马尾藻", "example": "She leaves the floating sargassum, a mass of algae.", "hint": "读作 sar-gas-sum，故事里漂浮的大团海藻 → 马尾藻"}, {"word": "algae", "phonetic": "/ˈældʒiː/", "meaning": "藻类", "example": "Sargassum is a big mass of algae.", "hint": "al + gae，水里生长的一大片绿色植物 → 藻类"}, {"word": "coral reef", "phonetic": "/ˈkɔːrəl riːf/", "meaning": "珊瑚礁", "example": "She reaches a coral reef, where she finds a tasty snack.", "hint": "coral（珊瑚）+ reef（礁）→ 海底的小动物家园 → 珊瑚礁"}, {"word": "sailfish", "phonetic": "/ˈseɪlfɪʃ/", "meaning": "旗鱼", "example": "She swims past islands, past sailfish.", "hint": "sail（帆）+ fish（鱼）→ 背鳍像帆一样高的鱼 → 旗鱼"}, {"word": "humpback whale", "phonetic": "/ˌhʌmpbæk ˈweɪl/", "meaning": "座头鲸", "example": "She swims past humpback whales.", "hint": "hump（驼峰）+ back（背）+ whale（鲸）→ 弓背的大鲸鱼 → 座头鲸"}, {"word": "island", "phonetic": "/ˈaɪlənd/", "meaning": "岛屿", "example": "She begins to swim past islands.", "hint": "is + land，四面都是水的小块陆地 → 岛屿"}, {"word": "jellyfish", "phonetic": "/ˈdʒelifɪʃ/", "meaning": "水母", "example": "Shark grabs the plastic bag. It looks like a jellyfish, but it is not.", "hint": "jelly（果冻）+ fish（鱼）→ 像果冻一样的海洋生物 → 水母"}, {"word": "choke", "phonetic": "/tʃoʊk/", "meaning": "窒息；呛住", "example": "The plastic bag could choke a turtle or clog its belly.", "hint": "像被东西卡住喉咙，无法呼吸 → 窒息"}, {"word": "survive", "phonetic": "/sərˈvaɪv/", "meaning": "幸存；活下来", "example": "The turtle is explaining how she was able to survive.", "hint": "sur（超过）+ vive（活）→ 经历危险后活下来 → 幸存"}, {"word": "float", "phonetic": "/floʊt/", "meaning": "漂浮", "example": "You are floating in the ocean, you are not drowning.", "hint": "不沉下去，在水面上漂着 → 漂浮"}];
-let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
+/* ---- 单词发音 (浏览器 Web Speech API，无需外部文件) ---- */
+function warmVoices() {
+  if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+}
+if ('speechSynthesis' in window) {
+  warmVoices();
+  window.speechSynthesis.onvoiceschanged = warmVoices;
+}
+function speakWord(text) {
+  if (!('speechSynthesis' in window)) { alert('当前浏览器不支持语音播放'); return; }
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
+    const voices = window.speechSynthesis.getVoices();
+    const en = voices.find(v => v.lang && v.lang.toLowerCase().indexOf('en') === 0);
+    if (en) u.voice = en;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
+}
+
+/* ---- 本地统计 ----
+   套题标识：取当前页面所在目录名（如 2026-11-09），同一期 index.html / en.html 共用一套统计 */
+const SET_ID = (function(){
+  try {
+    const segs = location.pathname.split('/').filter(Boolean);
+    const dir = segs.length >= 2 ? segs[segs.length-2] : '';
+    if (dir) return dir.replace(/[^A-Za-z0-9_-]/g,'') || 'default';
+  } catch(e){}
+  return 'default';
+})();
+const LS_KEY = 'yilia_words_stats_' + SET_ID;      // localStorage：本套题累计完成记录
+const SS_KEY = 'yilia_words_session_' + SET_ID;    // sessionStorage：本次打开页面已玩次数
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveRecords(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function sessionPlays() {
+  try { return parseInt(sessionStorage.getItem(SS_KEY) || '0', 10) || 0; } catch(e){ return 0; }
+}
+/* 完成一局（连连看/选择题）时调用：写一条记录到本地，并累计本次打开页面的游玩次数 */
+function addRecord(rec) {
+  const arr = loadRecords();
+  arr.push(Object.assign({ ts: Date.now() }, rec));
+  saveRecords(arr);
+  try { sessionStorage.setItem(SS_KEY, String(sessionPlays() + 1)); } catch(e){}
+}
+function statsHTML() {
+  return '📊 本次打开页面已玩 <b>' + sessionPlays() + '</b> 次 · 本套题累计完成 <b>' + loadRecords().length + '</b> 次';
+}
+
+const WORDS = [{"word":"turtle","phonetic":"/ˈtɜːrtl/","meaning":"海龟","example":"Turtle, Turtle, Watch Out! is the title of the story we read.","hint":"故事主角，背着硬壳的海洋动物 → 海龟"},{"word":"hatchling","phonetic":"/ˈhætʃlɪŋ/","meaning":"刚孵化的幼龟","example":"These hatchlings, these small turtles, crawl across the beach.","hint":"hatch（孵化）+ ling（小动物）→ 刚破壳的小龟 → 幼龟"},{"word":"crawl","phonetic":"/krɔːl/","meaning":"爬行","example":"The turtles are crawling toward the wrong light.","hint":"用肚子慢慢挪动，像小海龟在沙滩上一样 → 爬行"},{"word":"scurry","phonetic":"/ˈskɜːri/","meaning":"小碎步快跑","example":"She scurries toward the ocean waves.","hint":"s-curry，小短腿快速倒腾，像猫冲向猎物 → 快步跑"},{"word":"wave","phonetic":"/weɪv/","meaning":"海浪","example":"The waves carry the turtle toward the sea.","hint":"海面上一道道涌起又落下的水 → 海浪"},{"word":"current","phonetic":"/ˈkɜːrənt/","meaning":"水流；洋流","example":"Currents carry her thousands of miles.","hint":"cur + rent，海水的流动方向，把海龟带向远方 → 洋流"},{"word":"flipper","phonetic":"/ˈflɪpər/","meaning":"鳍状肢","example":"She pushes her flippers. She can swim.","hint":"flip（拍打）+ per，海龟用来划水的扁平肢体 → 鳍"},{"word":"seaweed","phonetic":"/ˈsiːwiːd/","meaning":"海草","example":"She rests in patches of seaweed.","hint":"sea（海）+ weed（草）→ 海里的植物 → 海草"},{"word":"sargassum","phonetic":"/sɑːrˈɡæsəm/","meaning":"马尾藻","example":"She leaves the floating sargassum, a mass of algae.","hint":"读作 sar-gas-sum，故事里漂浮的大团海藻 → 马尾藻"},{"word":"algae","phonetic":"/ˈældʒiː/","meaning":"藻类","example":"Sargassum is a big mass of algae.","hint":"al + gae，水里生长的一大片绿色植物 → 藻类"},{"word":"coral reef","phonetic":"/ˈkɔːrəl riːf/","meaning":"珊瑚礁","example":"She reaches a coral reef, where she finds a tasty snack.","hint":"coral（珊瑚）+ reef（礁）→ 海底的小动物家园 → 珊瑚礁"},{"word":"sailfish","phonetic":"/ˈseɪlfɪʃ/","meaning":"旗鱼","example":"She swims past islands, past sailfish.","hint":"sail（帆）+ fish（鱼）→ 背鳍像帆一样高的鱼 → 旗鱼"},{"word":"humpback whale","phonetic":"/ˌhʌmpbæk ˈweɪl/","meaning":"座头鲸","example":"She swims past humpback whales.","hint":"hump（驼峰）+ back（背）+ whale（鲸）→ 弓背的大鲸鱼 → 座头鲸"},{"word":"island","phonetic":"/ˈaɪlənd/","meaning":"岛屿","example":"She begins to swim past islands.","hint":"is + land，四面都是水的小块陆地 → 岛屿"},{"word":"jellyfish","phonetic":"/ˈdʒelifɪʃ/","meaning":"水母","example":"Shark grabs the plastic bag. It looks like a jellyfish, but it is not.","hint":"jelly（果冻）+ fish（鱼）→ 像果冻一样的海洋生物 → 水母"},{"word":"choke","phonetic":"/tʃoʊk/","meaning":"窒息；呛住","example":"The plastic bag could choke a turtle or clog its belly.","hint":"像被东西卡住喉咙，无法呼吸 → 窒息"},{"word":"survive","phonetic":"/sərˈvaɪv/","meaning":"幸存；活下来","example":"The turtle is explaining how she was able to survive.","hint":"sur（超过）+ vive（活）→ 经历危险后活下来 → 幸存"},{"word":"float","phonetic":"/floʊt/","meaning":"漂浮","example":"You are floating in the ocean, you are not drowning.","hint":"不沉下去，在水面上漂着 → 漂浮"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [], quizLog = [];
 
 /* ---- 标签切换 ---- */
 document.querySelectorAll('.tab').forEach(t => {
@@ -182,11 +259,19 @@ function renderCards() {
   grid.innerHTML = WORDS.map(w => `
     <div class="card">
       <div class="self"></div>
-      <div class="en">${w.word}</div>
+      <div class="en-row">
+        <span class="en">${w.word}</span>
+        <button class="speak" data-word="${w.word}" title="播放读音">🔊</button>
+      </div>
       <div class="ph">${w.phonetic}</div>
       <div class="meaning">${w.meaning}</div>
       <div class="example">📖 ${w.example}</div>
     </div>`).join('');
+  // 发音按钮（事件委托）
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('.speak');
+    if (btn) { e.stopPropagation(); speakWord(btn.dataset.word); }
+  });
   // 自己评测：认识/不认识
   grid.querySelectorAll('.card').forEach((card, i) => {
     const self = card.querySelector('.self');
@@ -214,7 +299,10 @@ function renderMatch() {
   let selL = null, selR = null;
   const status = document.getElementById('match-status');
   function checkDone() {
-    if (matchState.every(w => w.matched)) status.textContent = '🎉 全部配对成功！太棒了！';
+    if (matchState.every(w => w.matched)) {
+      addRecord({ type: 'match' });
+      status.innerHTML = '🎉 全部配对成功！太棒了！<span class="done-stats">' + statsHTML() + '</span>';
+    }
   }
   col.addEventListener('click', e => {
     const tile = e.target.closest('.mtile');
@@ -250,14 +338,26 @@ function renderMatch() {
 
 /* ---- 选择题 ---- */
 function renderQuiz() {
-  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = [];
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = []; quizLog = [];
   showQuizQ();
 }
 function showQuizQ() {
   const card = document.getElementById('quiz-card');
   if (quizIdx >= quizTotal) {
+    // 记录一次完整作答
+    addRecord({ type: 'quiz', score: quizScore, total: quizTotal });
+    const wrong = quizLog.filter(r => !r.ok);
+    let review = '';
+    if (wrong.length === 0) {
+      review = '<div class="review-item all-ok">🎉 全部答对，太棒了！</div>';
+    } else {
+      review = '<div class="review-title">❌ 做错的题目（' + wrong.length + ' 题）：</div>' +
+        wrong.map((r, i) => '<div class="review-item">' + (i+1) + '. <b>' + r.word + '</b> — 你选了「' + r.you + '」，正确答案：「' + r.correct + '」</div>').join('');
+    }
     card.innerHTML = `
       <div id="quiz-done">🏆 完成！你答对了 ${quizScore} / ${quizTotal} 题</div>
+      <div id="quiz-review">${review}</div>
+      <div id="quiz-stats">${statsHTML()}</div>
       <button id="quiz-restart" onclick="renderQuiz()">再玩一次</button>`;
     return;
   }
@@ -278,6 +378,7 @@ function showQuizQ() {
     o.addEventListener('click', () => {
       if (answered) return; answered = true;
       const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      quizLog.push({ word: w.word, ok, you: isEn2Zh ? o.dataset.m : o.dataset.w, correct: isEn2Zh ? w.meaning : w.word });
       card.querySelectorAll('.opt').forEach(x => x.disabled = true);
       if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
       else { o.classList.add('wrong'); soundWrong();
