@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yilia's English Word Game</title>
+<title>Yilia 的英语单词小游戏</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -39,7 +39,16 @@
     border:2px solid transparent; position:relative;
   }
   .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en-row { display:flex; align-items:center; gap:8px; }
   .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .speak {
+    border:none; background:#fbe8d8; color:#e07856; width:32px; height:32px;
+    border-radius:50%; font-size:15px; cursor:pointer; flex-shrink:0; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; transition:.15s;
+    padding:0;
+  }
+  .speak:hover { background:#e07856; color:#fff; transform:scale(1.08); }
+  .speak:active { transform:scale(.95); }
   .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
   .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
   .card .example {
@@ -55,6 +64,7 @@
   #match-wrap { text-align:center; }
   #match-col {
     display:flex; gap:10px; justify-content:center;
+    /* 不换行，强制两列并排，避免手机上中文列被挤到下方 */
   }
   .mcol { display:flex; flex-direction:column; gap:10px; flex:1; max-width:300px; min-width:0; }
   .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:2px; font-size:15px; }
@@ -62,11 +72,16 @@
     background:#fff; border-radius:10px; padding:10px 8px; cursor:pointer;
     border:2px solid #e8d8c0; font-size:16px; font-weight:600;
     transition:.15s; min-height:44px; display:flex; align-items:center; justify-content:center;
-    word-break:break-word;
+    word-break:break-word; /* 长词/长释义自动换行 */
   }
   .mtile.sel { border-color:#e07856; background:#fbe8d8; }
   .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
   #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
+  .done-stats { display:block; margin-top:8px; font-size:13px; color:#a08a76; font-weight:400; }
+  #match-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
 
   /* ---- 选择题 ---- */
   #quiz-card {
@@ -88,8 +103,23 @@
   #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
   #quiz-score { color:#e07856; font-weight:700; }
   #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-review { margin-top:14px; text-align:left; }
+  #quiz-review .review-title { font-size:15px; color:#e07856; font-weight:700; margin-bottom:8px; }
+  #quiz-review .review-item {
+    background:#fdf3e3; border:1px solid #e8d8c0; border-radius:10px;
+    padding:8px 12px; font-size:14px; color:#4a3f35; margin-bottom:6px; line-height:1.5;
+    word-break:break-word;
+  }
+  #quiz-review .review-item.ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-review .review-item.bad { border-color:#e8a08a; background:#fdeaea; }
+  #quiz-review .review-main { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  #quiz-review .review-cn { font-weight:700; font-size:15px; }
+  #quiz-review .review-en { color:#a08a76; font-size:13px; }
+  #quiz-review .review-mark { margin-left:auto; font-size:14px; white-space:nowrap; }
+  #quiz-review .review-sub { font-size:13px; color:#8a6a5a; margin-top:3px; }
+  #quiz-stats { margin-top:14px; font-size:14px; color:#a08a76; }
   #quiz-restart {
-    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    margin-top:16px; padding:10px 26px; border:none; border-radius:30px;
     background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
   }
   .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
@@ -97,14 +127,14 @@
 </head>
 <body>
 <header>
-  <h1>🐹 Yilia's Word Quest</h1>
+  <h1>🐹 Yilia 的单词闯关</h1>
   <p>Theme: Prairie Dogs · 18 words</p>
 </header>
 
 <div class="tabs">
-  <div class="tab active" data-panel="cards">📇 Flashcards</div>
-  <div class="tab" data-panel="match">🧩 Matching</div>
-  <div class="tab" data-panel="quiz">🎯 Quiz</div>
+  <div class="tab active" data-panel="cards">📇 单词卡片</div>
+  <div class="tab" data-panel="match">🧩 连连看</div>
+  <div class="tab" data-panel="quiz">🎯 选择题</div>
 </div>
 
 <main>
@@ -118,6 +148,7 @@
     <div id="match-wrap">
       <div id="match-col"></div>
       <div id="match-status"></div>
+      <button id="match-restart" onclick="renderMatch()">🔄 Rematch</button>
     </div>
   </div>
 
@@ -127,10 +158,10 @@
   </div>
 </main>
 
-<div class="foot">New words every lesson · learn and shine 🌟</div>
+<div class="foot">每课更新 · 记牢新单词，上课更轻松 🌟</div>
 
 <script>
-/* ---- Sound effects (Web Audio API, no external files) ---- */
+/* ---- 音效引擎 (Web Audio API 合成，无需外部文件) ---- */
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -153,17 +184,94 @@ function playNote(freq, start, dur, type='sine', vol=0.18) {
   o.start(t); o.stop(t + dur + 0.05);
 }
 function soundCorrect() {
-  playNote(523.25, 0, 0.15, 'triangle', 0.2);
-  playNote(659.25, 0.12, 0.18, 'triangle', 0.2);
-  playNote(783.99, 0.26, 0.25, 'triangle', 0.2);
+  playNote(523.25, 0, 0.15, 'triangle', 0.2);  // C5
+  playNote(659.25, 0.12, 0.18, 'triangle', 0.2); // E5
+  playNote(783.99, 0.26, 0.25, 'triangle', 0.2); // G5
 }
 function soundWrong() {
-  playNote(311.13, 0, 0.18, 'sawtooth', 0.14);
-  playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14);
+  playNote(311.13, 0, 0.18, 'sawtooth', 0.14); // Eb4
+  playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14); // Bb3
 }
 
-const WORDS = [{"word": "journey", "phonetic": "/ˈdʒɜːrni/", "meaning": "旅行，旅程", "example": "I am on a journey. My trip is to a prairie.", "hint": "My trip is to a prairie → 一次出行就是一次 journey"}, {"word": "nature", "phonetic": "/ˈneɪtʃər/", "meaning": "自然，大自然", "example": "The nature, the habitat — we've already talked about these words.", "hint": "看到很多动物、草原、森林 → 大自然"}, {"word": "habitat", "phonetic": "/ˈhæbɪtæt/", "meaning": "栖息地，住处", "example": "Is it okay for us to go out from our habitat?", "hint": "动物们住的地方就是 habitat"}, {"word": "restless", "phonetic": "/ˈrestləs/", "meaning": "焦躁不安的，坐立不安的", "example": "Pete is the guard and he is restless. He cannot rest because he is always looking around for danger.", "hint": "rest + less → 无法休息 → 焦躁"}, {"word": "spy", "phonetic": "/spaɪ/", "meaning": "间谍；暗中监视", "example": "The spy is a person who watches others secretly.", "hint": "spy → 复数 spies，暗中观察别人的人"}, {"word": "badger", "phonetic": "/ˈbædʒər/", "meaning": "獾（一种动物）", "example": "When Pete sees a large badger, he gives a loud bark.", "hint": "一种会捕猎 prairie dog 的动物"}, {"word": "guard", "phonetic": "/ɡɑːrd/", "meaning": "守卫，哨兵；守护", "example": "Pete is the guard and he is restless.", "hint": "负责放哨、保护大家的角色"}, {"word": "watchful", "phonetic": "/ˈwɒtʃfl/", "meaning": "警惕的，留心的", "example": "The watchful guard is able to escape into the burrow.", "hint": "watch + ful → 一直盯着看 → 警惕"}, {"word": "escape", "phonetic": "/ɪˈskeɪp/", "meaning": "逃跑，逃脱", "example": "The watchful guard is able to escape into the burrow. He gets away from danger.", "hint": "get away from danger → 逃脱危险"}, {"word": "recognize", "phonetic": "/ˈrekəɡnaɪz/", "meaning": "认出，辨认出", "example": "His family recognizes the warning.", "hint": "看到熟悉的东西一下子认出来"}, {"word": "scare", "phonetic": "/skeər/", "meaning": "使害怕，惊吓", "example": "A scare? No, the prairie dog. When he sees it, he gives a loud bark.", "hint": "afraid → 害怕，被吓到"}, {"word": "hunt", "phonetic": "/hʌnt/", "meaning": "捕猎，打猎", "example": "The badgers are the ones who hunt prairie dogs.", "hint": "badger 追捕 prairie dog 的行为"}, {"word": "predator", "phonetic": "/ˈpredətər/", "meaning": "捕食者，掠食者", "example": "So the badgers are the predators of the prairie dogs.", "hint": "会吃掉别的小动物的家伙"}, {"word": "burrow", "phonetic": "/ˈbɜːroʊ/", "meaning": "洞穴，地洞", "example": "Some hide in tall grasses and some jump into the burrow.", "hint": "土拨鼠挖的地下的家"}, {"word": "groom", "phonetic": "/ɡruːm/", "meaning": "梳理（毛发）", "example": "They can also groom each other to work on their burrow.", "hint": "互相整理毛发"}, {"word": "prairie", "phonetic": "/ˈpreəri/", "meaning": "草原，大草原", "example": "My trip is to a prairie. Badgers live on prairies.", "hint": "一望无际的大草原"}, {"word": "dangerous", "phonetic": "/ˈdeɪndʒərəs/", "meaning": "危险的", "example": "How do you pronounce this one again? Dangerous.", "hint": "danger + ous → 有危险的"}, {"word": "communicate", "phonetic": "/kəˈmjuːnɪkeɪt/", "meaning": "交流，沟通", "example": "Prairie dogs can make eleven different sounds to communicate with each other.", "hint": "用声音互相传达信息"}];
-let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
+/* ---- 单词发音 ----
+   方案1：浏览器原生 speechSynthesis（Mac/iPad/iPhone Safari 支持，无需网络）
+   方案2：不支持时降级为在线 TTS 音频（有道词典发音，微信内置浏览器/安卓 WebView 可用）
+   注意：微信内置浏览器不支持 speechSynthesis，会触发方案2 */
+function warmVoices() {
+  if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+}
+if ('speechSynthesis' in window) {
+  warmVoices();
+  window.speechSynthesis.onvoiceschanged = warmVoices;
+}
+function fallbackSpeak(text) {
+  // 在线发音：有道词典 TTS（美音），无需 key，微信内可播放
+  var url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=2';
+  try {
+    var a = new Audio(url);
+    a.play().catch(function() {
+      alert('发音失败：请检查网络，或用系统浏览器（Safari/Chrome）打开本页');
+    });
+  } catch(e) {
+    alert('当前浏览器不支持语音播放，建议用系统浏览器（Safari/Chrome）打开本页');
+  }
+}
+function speakWord(text) {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
+      var voices = window.speechSynthesis.getVoices();
+      var en = voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('en') === 0; });
+      if (en) u.voice = en;
+      // 部分安卓浏览器 speechSynthesis 存在但不发声，报错时自动降级
+      u.onerror = function() { fallbackSpeak(text); };
+      window.speechSynthesis.speak(u);
+      // Chrome 偶发 speak 后无声音但不触发 onerror：speak 后 2.5s 内若未开始播放则降级
+      var started = false;
+      u.onstart = function() { started = true; };
+      setTimeout(function() { if (!started) { try { window.speechSynthesis.cancel(); } catch(e){} fallbackSpeak(text); } }, 2500);
+      return;
+    } catch(e) {}
+  }
+  fallbackSpeak(text);
+}
+
+/* ---- 本地统计 ----
+   套题标识：取当前页面所在目录名（如 2026-11-09），同一期 index.html / en.html 共用一套统计 */
+const SET_ID = (function(){
+  try {
+    const segs = location.pathname.split('/').filter(Boolean);
+    const dir = segs.length >= 2 ? segs[segs.length-2] : '';
+    if (dir) return dir.replace(/[^A-Za-z0-9_-]/g,'') || 'default';
+  } catch(e){}
+  return 'default';
+})();
+const LS_KEY = 'yilia_words_stats_' + SET_ID;      // localStorage：本套题累计完成记录
+const SS_KEY = 'yilia_words_session_' + SET_ID;    // sessionStorage：本次打开页面已玩次数
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveRecords(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function sessionPlays() {
+  try { return parseInt(sessionStorage.getItem(SS_KEY) || '0', 10) || 0; } catch(e){ return 0; }
+}
+/* 完成一局（连连看/选择题）时调用：写一条记录到本地，并累计本次打开页面的游玩次数 */
+function addRecord(rec) {
+  const arr = loadRecords();
+  arr.push(Object.assign({ ts: Date.now() }, rec));
+  saveRecords(arr);
+  try { sessionStorage.setItem(SS_KEY, String(sessionPlays() + 1)); } catch(e){}
+}
+function statsHTML() {
+  return '📊 Played <b>' + sessionPlays() + '</b> time(s) this session · This set completed <b>' + loadRecords().length + '</b> time(s) in total';
+}
+
+const WORDS = [{"word":"journey","phonetic":"/ˈdʒɜːrni/","meaning":"旅行，旅程","example":"I am on a journey. My trip is to a prairie.","hint":"My trip is to a prairie → 一次出行就是一次 journey"},{"word":"nature","phonetic":"/ˈneɪtʃər/","meaning":"自然，大自然","example":"The nature, the habitat — we've already talked about these words.","hint":"看到很多动物、草原、森林 → 大自然"},{"word":"habitat","phonetic":"/ˈhæbɪtæt/","meaning":"栖息地，住处","example":"Is it okay for us to go out from our habitat?","hint":"动物们住的地方就是 habitat"},{"word":"restless","phonetic":"/ˈrestləs/","meaning":"焦躁不安的，坐立不安的","example":"Pete is the guard and he is restless. He cannot rest because he is always looking around for danger.","hint":"rest + less → 无法休息 → 焦躁"},{"word":"spy","phonetic":"/spaɪ/","meaning":"间谍；暗中监视","example":"The spy is a person who watches others secretly.","hint":"spy → 复数 spies，暗中观察别人的人"},{"word":"badger","phonetic":"/ˈbædʒər/","meaning":"獾（一种动物）","example":"When Pete sees a large badger, he gives a loud bark.","hint":"一种会捕猎 prairie dog 的动物"},{"word":"guard","phonetic":"/ɡɑːrd/","meaning":"守卫，哨兵；守护","example":"Pete is the guard and he is restless.","hint":"负责放哨、保护大家的角色"},{"word":"watchful","phonetic":"/ˈwɒtʃfl/","meaning":"警惕的，留心的","example":"The watchful guard is able to escape into the burrow.","hint":"watch + ful → 一直盯着看 → 警惕"},{"word":"escape","phonetic":"/ɪˈskeɪp/","meaning":"逃跑，逃脱","example":"The watchful guard is able to escape into the burrow. He gets away from danger.","hint":"get away from danger → 逃脱危险"},{"word":"recognize","phonetic":"/ˈrekəɡnaɪz/","meaning":"认出，辨认出","example":"His family recognizes the warning.","hint":"看到熟悉的东西一下子认出来"},{"word":"scare","phonetic":"/skeər/","meaning":"使害怕，惊吓","example":"A scare? No, the prairie dog. When he sees it, he gives a loud bark.","hint":"afraid → 害怕，被吓到"},{"word":"hunt","phonetic":"/hʌnt/","meaning":"捕猎，打猎","example":"The badgers are the ones who hunt prairie dogs.","hint":"badger 追捕 prairie dog 的行为"},{"word":"predator","phonetic":"/ˈpredətər/","meaning":"捕食者，掠食者","example":"So the badgers are the predators of the prairie dogs.","hint":"会吃掉别的小动物的家伙"},{"word":"burrow","phonetic":"/ˈbɜːroʊ/","meaning":"洞穴，地洞","example":"Some hide in tall grasses and some jump into the burrow.","hint":"土拨鼠挖的地下的家"},{"word":"groom","phonetic":"/ɡruːm/","meaning":"梳理（毛发）","example":"They can also groom each other to work on their burrow.","hint":"互相整理毛发"},{"word":"prairie","phonetic":"/ˈpreəri/","meaning":"草原，大草原","example":"My trip is to a prairie. Badgers live on prairies.","hint":"一望无际的大草原"},{"word":"dangerous","phonetic":"/ˈdeɪndʒərəs/","meaning":"危险的","example":"How do you pronounce this one again? Dangerous.","hint":"danger + ous → 有危险的"},{"word":"communicate","phonetic":"/kəˈmjuːnɪkeɪt/","meaning":"交流，沟通","example":"Prairie dogs can make eleven different sounds to communicate with each other.","hint":"用声音互相传达信息"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [], quizLog = [];
 
 /* ---- 标签切换 ---- */
 document.querySelectorAll('.tab').forEach(t => {
@@ -181,12 +289,20 @@ function renderCards() {
   grid.innerHTML = WORDS.map(w => `
     <div class="card">
       <div class="self"></div>
-      <div class="en">${w.word}</div>
+      <div class="en-row">
+        <span class="en">${w.word}</span>
+        <button class="speak" data-word="${w.word}" title="Play pronunciation">🔊</button>
+      </div>
       <div class="ph">${w.phonetic}</div>
       <div class="meaning">${w.meaning}</div>
       <div class="example">📖 ${w.example}</div>
     </div>`).join('');
-  // 自己评测：认识/Not sure
+  // 发音按钮（事件委托）
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('.speak');
+    if (btn) { e.stopPropagation(); speakWord(btn.dataset.word); }
+  });
+  // 自己评测：认识/不认识
   grid.querySelectorAll('.card').forEach((card, i) => {
     const self = card.querySelector('.self');
     const known = document.createElement('span');
@@ -213,7 +329,10 @@ function renderMatch() {
   let selL = null, selR = null;
   const status = document.getElementById('match-status');
   function checkDone() {
-    if (matchState.every(w => w.matched)) status.textContent = '🎉 All matched! Great job!';
+    if (matchState.every(w => w.matched)) {
+      addRecord({ type: 'match' });
+      status.innerHTML = '🎉 All matched! Great job!<span class="done-stats">' + statsHTML() + '</span>';
+    }
   }
   col.addEventListener('click', e => {
     const tile = e.target.closest('.mtile');
@@ -234,7 +353,7 @@ function renderMatch() {
         selL.classList.add('matched'); selR.classList.add('matched');
         selL.classList.remove('sel'); selR.classList.remove('sel');
         target.matched = true;
-        status.textContent = '✅ Correct match!';
+        status.textContent = '✅ Correct!';
         soundCorrect();
         selL = selR = null; checkDone();
       } else {
@@ -249,14 +368,37 @@ function renderMatch() {
 
 /* ---- 选择题 ---- */
 function renderQuiz() {
-  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = [];
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = []; quizLog = [];
   showQuizQ();
 }
 function showQuizQ() {
   const card = document.getElementById('quiz-card');
   if (quizIdx >= quizTotal) {
+    // 记录一次完整作答
+    addRecord({ type: 'quiz', score: quizScore, total: quizTotal });
+    const wrong = quizLog.filter(r => !r.ok);
+    let review = '';
+    if (wrong.length === 0) {
+      review = '<div class="review-item ok"><div class="review-main"><span class="review-cn">🎉 全部答对，太棒了！</span><span class="review-en">All correct, amazing!</span></div></div>';
+    } else {
+      review = '<div class="review-title">📋 Review: ❌ means review these ' + wrong.length + ' words again</div>';
+    }
+    // 完整回顾列表（每行：中文释义 + 下方英文单词，外教也能看懂；答错的标 ❌ 重点记忆）
+    review += quizLog.map((r, i) => {
+      const w = WORDS.find(x => x.word === r.word) || { word: r.word, meaning: r.correct };
+      const mark = r.ok ? '<span class="review-mark">✅</span>'
+                        : '<span class="review-mark">❌ Review</span>';
+      const sub = r.ok
+        ? '<div class="review-sub"><span class="review-en">' + w.word + '</span></div>'
+        : '<div class="review-sub"><span class="review-en">' + w.word + '</span> · You picked「' + r.you + '」, correct:「' + r.correct + '」</div>';
+      return '<div class="review-item ' + (r.ok ? 'ok' : 'bad') + '">' +
+        '<div class="review-main"><span>' + (i+1) + '.</span>' +
+        '<span class="review-cn">' + w.meaning + '</span>' + mark + '</div>' + sub + '</div>';
+    }).join('');
     card.innerHTML = `
-      <div id="quiz-done">🏆 Done! You got ${quizScore} / ${quizTotal} right</div>
+      <div id="quiz-done">🏆 Done! You got ${quizScore} / ${quizTotal} correct</div>
+      <div id="quiz-review">${review}</div>
+      <div id="quiz-stats">${statsHTML()}</div>
       <button id="quiz-restart" onclick="renderQuiz()">Play again</button>`;
     return;
   }
@@ -277,6 +419,7 @@ function showQuizQ() {
     o.addEventListener('click', () => {
       if (answered) return; answered = true;
       const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      quizLog.push({ word: w.word, ok, you: isEn2Zh ? o.dataset.m : o.dataset.w, correct: isEn2Zh ? w.meaning : w.word });
       card.querySelectorAll('.opt').forEach(x => x.disabled = true);
       if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
       else { o.classList.add('wrong'); soundWrong();

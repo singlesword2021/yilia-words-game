@@ -110,7 +110,13 @@
     padding:8px 12px; font-size:14px; color:#4a3f35; margin-bottom:6px; line-height:1.5;
     word-break:break-word;
   }
-  #quiz-review .review-item.all-ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-review .review-item.ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-review .review-item.bad { border-color:#e8a08a; background:#fdeaea; }
+  #quiz-review .review-main { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  #quiz-review .review-cn { font-weight:700; font-size:15px; }
+  #quiz-review .review-en { color:#a08a76; font-size:13px; }
+  #quiz-review .review-mark { margin-left:auto; font-size:14px; white-space:nowrap; }
+  #quiz-review .review-sub { font-size:13px; color:#8a6a5a; margin-top:3px; }
   #quiz-stats { margin-top:14px; font-size:14px; color:#a08a76; }
   #quiz-restart {
     margin-top:16px; padding:10px 26px; border:none; border-radius:30px;
@@ -373,11 +379,22 @@ function showQuizQ() {
     const wrong = quizLog.filter(r => !r.ok);
     let review = '';
     if (wrong.length === 0) {
-      review = '<div class="review-item all-ok">🎉 All correct! Amazing!</div>';
+      review = '<div class="review-item ok"><div class="review-main"><span class="review-cn">🎉 全部答对，太棒了！</span><span class="review-en">All correct, amazing!</span></div></div>';
     } else {
-      review = '<div class="review-title">❌ Wrong answers (' + wrong.length + '):</div>' +
-        wrong.map((r, i) => '<div class="review-item">' + (i+1) + '. <b>' + r.word + '</b> — you picked「' + r.you + '」, correct answer:「' + r.correct + '」</div>').join('');
+      review = '<div class="review-title">📋 Review: ❌ means review these ' + wrong.length + ' words again</div>';
     }
+    // 完整回顾列表（每行：中文释义 + 下方英文单词，外教也能看懂；答错的标 ❌ 重点记忆）
+    review += quizLog.map((r, i) => {
+      const w = WORDS.find(x => x.word === r.word) || { word: r.word, meaning: r.correct };
+      const mark = r.ok ? '<span class="review-mark">✅</span>'
+                        : '<span class="review-mark">❌ Review</span>';
+      const sub = r.ok
+        ? '<div class="review-sub"><span class="review-en">' + w.word + '</span></div>'
+        : '<div class="review-sub"><span class="review-en">' + w.word + '</span> · You picked「' + r.you + '」, correct:「' + r.correct + '」</div>';
+      return '<div class="review-item ' + (r.ok ? 'ok' : 'bad') + '">' +
+        '<div class="review-main"><span>' + (i+1) + '.</span>' +
+        '<span class="review-cn">' + w.meaning + '</span>' + mark + '</div>' + sub + '</div>';
+    }).join('');
     card.innerHTML = `
       <div id="quiz-done">🏆 Done! You got ${quizScore} / ${quizTotal} correct</div>
       <div id="quiz-review">${review}</div>
