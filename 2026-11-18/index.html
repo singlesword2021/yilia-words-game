@@ -39,7 +39,16 @@
     border:2px solid transparent; position:relative;
   }
   .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en-row { display:flex; align-items:center; gap:8px; }
   .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .speak {
+    border:none; background:#fbe8d8; color:#e07856; width:32px; height:32px;
+    border-radius:50%; font-size:15px; cursor:pointer; flex-shrink:0; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; transition:.15s;
+    padding:0;
+  }
+  .speak:hover { background:#e07856; color:#fff; transform:scale(1.08); }
+  .speak:active { transform:scale(.95); }
   .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
   .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
   .card .example {
@@ -68,6 +77,11 @@
   .mtile.sel { border-color:#e07856; background:#fbe8d8; }
   .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
   #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
+  .done-stats { display:block; margin-top:8px; font-size:13px; color:#a08a76; font-weight:400; }
+  #match-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
 
   /* ---- 选择题 ---- */
   #quiz-card {
@@ -89,8 +103,17 @@
   #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
   #quiz-score { color:#e07856; font-weight:700; }
   #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-review { margin-top:14px; text-align:left; }
+  #quiz-review .review-title { font-size:15px; color:#e07856; font-weight:700; margin-bottom:8px; }
+  #quiz-review .review-item {
+    background:#fdf3e3; border:1px solid #e8d8c0; border-radius:10px;
+    padding:8px 12px; font-size:14px; color:#4a3f35; margin-bottom:6px; line-height:1.5;
+    word-break:break-word;
+  }
+  #quiz-review .review-item.all-ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-stats { margin-top:14px; font-size:14px; color:#a08a76; }
   #quiz-restart {
-    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    margin-top:16px; padding:10px 26px; border:none; border-radius:30px;
     background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
   }
   .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
@@ -119,6 +142,7 @@
     <div id="match-wrap">
       <div id="match-col"></div>
       <div id="match-status"></div>
+      <button id="match-restart" onclick="renderMatch()">🔄 重新配对</button>
     </div>
   </div>
 
@@ -163,8 +187,85 @@ function soundWrong() {
   playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14); // Bb3
 }
 
-const WORDS = [{"word": "suffix", "phonetic": "/ˈsʌfɪks/", "meaning": "后缀", "example": "A suffix is a group of letters added to the end of a base word to change its meaning.", "hint": "suf + fix → 加在词尾的部分 → 后缀"}, {"word": "prefix", "phonetic": "/ˈpriːfɪks/", "meaning": "前缀", "example": "A prefix is a syllable we put at the beginning of a word.", "hint": "pre + fix → 放在词前面的部分 → 前缀"}, {"word": "base word", "phonetic": "/beɪs wɜːrd/", "meaning": "根词，词根", "example": "The root word of 'booked' is 'book'.", "hint": "去掉后缀后剩下的部分 → 根词"}, {"word": "noun", "phonetic": "/naʊn/", "meaning": "名词", "example": "A noun is the name of a person, place, thing or event.", "hint": "表示人、地点、事物或事件的名字 → 名词"}, {"word": "adjective", "phonetic": "/ˈædʒɪktɪv/", "meaning": "形容词", "example": "Helpful and careless are adjectives that describe things.", "hint": "用来描述人或物的词 → 形容词"}, {"word": "adverb", "phonetic": "/ˈædvɜːrb/", "meaning": "副词", "example": "Quickly and loudly are adverbs that describe how something is done.", "hint": "常以 -ly 结尾，描述动作的方式 → 副词"}, {"word": "actor", "phonetic": "/ˈæktər/", "meaning": "演员", "example": "A person who acts is an actor.", "hint": "act + or → 表演的人 → 演员"}, {"word": "artist", "phonetic": "/ˈɑːrtɪst/", "meaning": "艺术家，画家", "example": "A person who loves to draw is an artist.", "hint": "art + ist → 有绘画技能的人 → 艺术家"}, {"word": "scientist", "phonetic": "/ˈsaɪəntɪst/", "meaning": "科学家", "example": "A person who loves to do science and research is a scientist.", "hint": "science + ist → 做科学研究的人 → 科学家"}, {"word": "musician", "phonetic": "/mjuˈzɪʃn/", "meaning": "音乐家", "example": "A musician is a person whose job or field is about music.", "hint": "music + ian → 以音乐为职业的人 → 音乐家"}, {"word": "movement", "phonetic": "/ˈmuːvmənt/", "meaning": "动作，运动", "example": "Movement is about action or result.", "hint": "move + ment → 表示动作或结果的名词"}, {"word": "education", "phonetic": "/ˌedʒuˈkeɪʃn/", "meaning": "教育", "example": "Education is a word that ends with the -tion suffix.", "hint": "educate + tion → 教育这一行为 → 教育"}, {"word": "decision", "phonetic": "/dɪˈsɪʒn/", "meaning": "决定", "example": "The word 'decision' uses the -sion suffix.", "hint": "decide + sion → 做出的决定 → 决定"}, {"word": "kindness", "phonetic": "/ˈkaɪndnəs/", "meaning": "善良，仁慈", "example": "Kindness is about a state or quality, a feeling.", "hint": "kind + ness → 善良的品质 → 仁慈"}, {"word": "careless", "phonetic": "/ˈkerləs/", "meaning": "粗心的，不小心的", "example": "Careless means without care, so you must add the letter E before -less.", "hint": "care + less → 没有小心 → 粗心的"}, {"word": "fearless", "phonetic": "/ˈfɪrləs/", "meaning": "无畏的，不怕的", "example": "Fearless means without fear.", "hint": "fear + less → 没有恐惧 → 无畏的"}, {"word": "quickly", "phonetic": "/ˈkwɪkli/", "meaning": "快速地", "example": "Quickly is an adverb made by adding -ly to quick.", "hint": "quick + ly → 以快速的方式 → 快速地"}, {"word": "belief", "phonetic": "/bɪˈliːf/", "meaning": "信念，信仰", "example": "My belief is about the church; I believe in what I hold true.", "hint": "believe 的名词形式 → 你坚信的东西 → 信念"}];
-let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [];
+/* ---- 单词发音 ----
+   方案1：浏览器原生 speechSynthesis（Mac/iPad/iPhone Safari 支持，无需网络）
+   方案2：不支持时降级为在线 TTS 音频（有道词典发音，微信内置浏览器/安卓 WebView 可用）
+   注意：微信内置浏览器不支持 speechSynthesis，会触发方案2 */
+function warmVoices() {
+  if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+}
+if ('speechSynthesis' in window) {
+  warmVoices();
+  window.speechSynthesis.onvoiceschanged = warmVoices;
+}
+function fallbackSpeak(text) {
+  // 在线发音：有道词典 TTS（美音），无需 key，微信内可播放
+  var url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=2';
+  try {
+    var a = new Audio(url);
+    a.play().catch(function() {
+      alert('发音失败：请检查网络，或用系统浏览器（Safari/Chrome）打开本页');
+    });
+  } catch(e) {
+    alert('当前浏览器不支持语音播放，建议用系统浏览器（Safari/Chrome）打开本页');
+  }
+}
+function speakWord(text) {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
+      var voices = window.speechSynthesis.getVoices();
+      var en = voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('en') === 0; });
+      if (en) u.voice = en;
+      // 部分安卓浏览器 speechSynthesis 存在但不发声，报错时自动降级
+      u.onerror = function() { fallbackSpeak(text); };
+      window.speechSynthesis.speak(u);
+      // Chrome 偶发 speak 后无声音但不触发 onerror：speak 后 2.5s 内若未开始播放则降级
+      var started = false;
+      u.onstart = function() { started = true; };
+      setTimeout(function() { if (!started) { try { window.speechSynthesis.cancel(); } catch(e){} fallbackSpeak(text); } }, 2500);
+      return;
+    } catch(e) {}
+  }
+  fallbackSpeak(text);
+}
+
+/* ---- 本地统计 ----
+   套题标识：取当前页面所在目录名（如 2026-11-09），同一期 index.html / en.html 共用一套统计 */
+const SET_ID = (function(){
+  try {
+    const segs = location.pathname.split('/').filter(Boolean);
+    const dir = segs.length >= 2 ? segs[segs.length-2] : '';
+    if (dir) return dir.replace(/[^A-Za-z0-9_-]/g,'') || 'default';
+  } catch(e){}
+  return 'default';
+})();
+const LS_KEY = 'yilia_words_stats_' + SET_ID;      // localStorage：本套题累计完成记录
+const SS_KEY = 'yilia_words_session_' + SET_ID;    // sessionStorage：本次打开页面已玩次数
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveRecords(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function sessionPlays() {
+  try { return parseInt(sessionStorage.getItem(SS_KEY) || '0', 10) || 0; } catch(e){ return 0; }
+}
+/* 完成一局（连连看/选择题）时调用：写一条记录到本地，并累计本次打开页面的游玩次数 */
+function addRecord(rec) {
+  const arr = loadRecords();
+  arr.push(Object.assign({ ts: Date.now() }, rec));
+  saveRecords(arr);
+  try { sessionStorage.setItem(SS_KEY, String(sessionPlays() + 1)); } catch(e){}
+}
+function statsHTML() {
+  return '📊 本次打开页面已玩 <b>' + sessionPlays() + '</b> 次 · 本套题累计完成 <b>' + loadRecords().length + '</b> 次';
+}
+
+const WORDS = [{"word":"suffix","phonetic":"/ˈsʌfɪks/","meaning":"后缀","example":"A suffix is a group of letters added to the end of a base word to change its meaning.","hint":"suf + fix → 加在词尾的部分 → 后缀"},{"word":"prefix","phonetic":"/ˈpriːfɪks/","meaning":"前缀","example":"A prefix is a syllable we put at the beginning of a word.","hint":"pre + fix → 放在词前面的部分 → 前缀"},{"word":"base word","phonetic":"/beɪs wɜːrd/","meaning":"根词，词根","example":"The root word of 'booked' is 'book'.","hint":"去掉后缀后剩下的部分 → 根词"},{"word":"noun","phonetic":"/naʊn/","meaning":"名词","example":"A noun is the name of a person, place, thing or event.","hint":"表示人、地点、事物或事件的名字 → 名词"},{"word":"adjective","phonetic":"/ˈædʒɪktɪv/","meaning":"形容词","example":"Helpful and careless are adjectives that describe things.","hint":"用来描述人或物的词 → 形容词"},{"word":"adverb","phonetic":"/ˈædvɜːrb/","meaning":"副词","example":"Quickly and loudly are adverbs that describe how something is done.","hint":"常以 -ly 结尾，描述动作的方式 → 副词"},{"word":"actor","phonetic":"/ˈæktər/","meaning":"演员","example":"A person who acts is an actor.","hint":"act + or → 表演的人 → 演员"},{"word":"artist","phonetic":"/ˈɑːrtɪst/","meaning":"艺术家，画家","example":"A person who loves to draw is an artist.","hint":"art + ist → 有绘画技能的人 → 艺术家"},{"word":"scientist","phonetic":"/ˈsaɪəntɪst/","meaning":"科学家","example":"A person who loves to do science and research is a scientist.","hint":"science + ist → 做科学研究的人 → 科学家"},{"word":"musician","phonetic":"/mjuˈzɪʃn/","meaning":"音乐家","example":"A musician is a person whose job or field is about music.","hint":"music + ian → 以音乐为职业的人 → 音乐家"},{"word":"movement","phonetic":"/ˈmuːvmənt/","meaning":"动作，运动","example":"Movement is about action or result.","hint":"move + ment → 表示动作或结果的名词"},{"word":"education","phonetic":"/ˌedʒuˈkeɪʃn/","meaning":"教育","example":"Education is a word that ends with the -tion suffix.","hint":"educate + tion → 教育这一行为 → 教育"},{"word":"decision","phonetic":"/dɪˈsɪʒn/","meaning":"决定","example":"The word 'decision' uses the -sion suffix.","hint":"decide + sion → 做出的决定 → 决定"},{"word":"kindness","phonetic":"/ˈkaɪndnəs/","meaning":"善良，仁慈","example":"Kindness is about a state or quality, a feeling.","hint":"kind + ness → 善良的品质 → 仁慈"},{"word":"careless","phonetic":"/ˈkerləs/","meaning":"粗心的，不小心的","example":"Careless means without care, so you must add the letter E before -less.","hint":"care + less → 没有小心 → 粗心的"},{"word":"fearless","phonetic":"/ˈfɪrləs/","meaning":"无畏的，不怕的","example":"Fearless means without fear.","hint":"fear + less → 没有恐惧 → 无畏的"},{"word":"quickly","phonetic":"/ˈkwɪkli/","meaning":"快速地","example":"Quickly is an adverb made by adding -ly to quick.","hint":"quick + ly → 以快速的方式 → 快速地"},{"word":"belief","phonetic":"/bɪˈliːf/","meaning":"信念，信仰","example":"My belief is about the church; I believe in what I hold true.","hint":"believe 的名词形式 → 你坚信的东西 → 信念"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [], quizLog = [];
 
 /* ---- 标签切换 ---- */
 document.querySelectorAll('.tab').forEach(t => {
@@ -182,11 +283,19 @@ function renderCards() {
   grid.innerHTML = WORDS.map(w => `
     <div class="card">
       <div class="self"></div>
-      <div class="en">${w.word}</div>
+      <div class="en-row">
+        <span class="en">${w.word}</span>
+        <button class="speak" data-word="${w.word}" title="播放读音">🔊</button>
+      </div>
       <div class="ph">${w.phonetic}</div>
       <div class="meaning">${w.meaning}</div>
       <div class="example">📖 ${w.example}</div>
     </div>`).join('');
+  // 发音按钮（事件委托）
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('.speak');
+    if (btn) { e.stopPropagation(); speakWord(btn.dataset.word); }
+  });
   // 自己评测：认识/不认识
   grid.querySelectorAll('.card').forEach((card, i) => {
     const self = card.querySelector('.self');
@@ -214,7 +323,10 @@ function renderMatch() {
   let selL = null, selR = null;
   const status = document.getElementById('match-status');
   function checkDone() {
-    if (matchState.every(w => w.matched)) status.textContent = '🎉 全部配对成功！太棒了！';
+    if (matchState.every(w => w.matched)) {
+      addRecord({ type: 'match' });
+      status.innerHTML = '🎉 全部配对成功！太棒了！<span class="done-stats">' + statsHTML() + '</span>';
+    }
   }
   col.addEventListener('click', e => {
     const tile = e.target.closest('.mtile');
@@ -250,14 +362,26 @@ function renderMatch() {
 
 /* ---- 选择题 ---- */
 function renderQuiz() {
-  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = [];
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = []; quizLog = [];
   showQuizQ();
 }
 function showQuizQ() {
   const card = document.getElementById('quiz-card');
   if (quizIdx >= quizTotal) {
+    // 记录一次完整作答
+    addRecord({ type: 'quiz', score: quizScore, total: quizTotal });
+    const wrong = quizLog.filter(r => !r.ok);
+    let review = '';
+    if (wrong.length === 0) {
+      review = '<div class="review-item all-ok">🎉 全部答对，太棒了！</div>';
+    } else {
+      review = '<div class="review-title">❌ 做错的题目（' + wrong.length + ' 题）：</div>' +
+        wrong.map((r, i) => '<div class="review-item">' + (i+1) + '. <b>' + r.word + '</b> — 你选了「' + r.you + '」，正确答案：「' + r.correct + '」</div>').join('');
+    }
     card.innerHTML = `
       <div id="quiz-done">🏆 完成！你答对了 ${quizScore} / ${quizTotal} 题</div>
+      <div id="quiz-review">${review}</div>
+      <div id="quiz-stats">${statsHTML()}</div>
       <button id="quiz-restart" onclick="renderQuiz()">再玩一次</button>`;
     return;
   }
@@ -278,6 +402,7 @@ function showQuizQ() {
     o.addEventListener('click', () => {
       if (answered) return; answered = true;
       const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      quizLog.push({ word: w.word, ok, you: isEn2Zh ? o.dataset.m : o.dataset.w, correct: isEn2Zh ? w.meaning : w.word });
       card.querySelectorAll('.opt').forEach(x => x.disabled = true);
       if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
       else { o.classList.add('wrong'); soundWrong();
