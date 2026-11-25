@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yilia 的英语单词小游戏</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+    background: linear-gradient(160deg,#fdf6e3 0%,#fbe4d6 100%);
+    min-height:100vh; color:#4a3f35;
+  }
+  header {
+    text-align:center; padding:28px 16px 10px;
+  }
+  header h1 { font-size:30px; color:#e07856; letter-spacing:2px; }
+  header p { color:#a08a76; margin-top:6px; font-size:15px; }
+  .tabs {
+    display:flex; justify-content:center; gap:12px; margin:18px auto 24px;
+    max-width:700px; flex-wrap:wrap;
+  }
+  .tab {
+    padding:10px 22px; border-radius:30px; cursor:pointer;
+    background:#fff; border:2px solid #e8c8a0; color:#b08a5a;
+    font-size:16px; font-weight:600; transition:.2s;
+  }
+  .tab.active { background:#e07856; border-color:#e07856; color:#fff; }
+  .tab:hover { transform:translateY(-2px); }
+  main { max-width:760px; margin:0 auto; padding:0 16px 40px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ---- 卡片模式 ---- */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+  .card {
+    background:#fff; border-radius:16px; padding:16px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.06); transition:.2s;
+    border:2px solid transparent; position:relative;
+  }
+  .card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  .card .en-row { display:flex; align-items:center; gap:8px; }
+  .card .en { font-size:22px; font-weight:800; color:#e07856; }
+  .speak {
+    border:none; background:#fbe8d8; color:#e07856; width:32px; height:32px;
+    border-radius:50%; font-size:15px; cursor:pointer; flex-shrink:0; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; transition:.15s;
+    padding:0;
+  }
+  .speak:hover { background:#e07856; color:#fff; transform:scale(1.08); }
+  .speak:active { transform:scale(.95); }
+  .card .ph { font-size:13px; color:#b0a08a; margin-top:2px; }
+  .card .meaning { font-size:17px; color:#4a3f35; margin-top:8px; }
+  .card .example {
+    font-size:13px; color:#a08a76; margin-top:8px; line-height:1.5;
+    border-top:1px dashed #e8d8c0; padding-top:8px;
+  }
+  .card .self { position:absolute; top:8px; right:8px; font-size:15px; }
+  .card .self .k { cursor:pointer; margin-left:3px; }
+  .card.known { border-color:#9ccb8a; }
+  .card.unknown { border-color:#e8a08a; }
+
+  /* ---- 连连看 ---- */
+  #match-wrap { text-align:center; }
+  #match-col {
+    display:flex; gap:10px; justify-content:center;
+    /* 不换行，强制两列并排，避免手机上中文列被挤到下方 */
+  }
+  .mcol { display:flex; flex-direction:column; gap:10px; flex:1; max-width:300px; min-width:0; }
+  .mcol h3 { text-align:center; color:#b08a5a; margin-bottom:2px; font-size:15px; }
+  .mtile {
+    background:#fff; border-radius:10px; padding:10px 8px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:16px; font-weight:600;
+    transition:.15s; min-height:44px; display:flex; align-items:center; justify-content:center;
+    word-break:break-word; /* 长词/长释义自动换行 */
+  }
+  .mtile.sel { border-color:#e07856; background:#fbe8d8; }
+  .mtile.matched { border-color:#9ccb8a; background:#eef7ea; color:#5a8a4a; cursor:default; }
+  #match-status { margin-top:16px; font-size:16px; color:#e07856; font-weight:700; }
+  .done-stats { display:block; margin-top:8px; font-size:13px; color:#a08a76; font-weight:400; }
+  #match-restart {
+    margin-top:14px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
+
+  /* ---- 选择题 ---- */
+  #quiz-card {
+    background:#fff; border-radius:20px; padding:30px; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.06); max-width:560px; margin:0 auto;
+  }
+  #quiz-word { font-size:42px; font-weight:800; color:#e07856; }
+  #quiz-ph { font-size:16px; color:#b0a08a; margin-top:4px; }
+  #quiz-q { font-size:15px; color:#a08a76; margin-top:8px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; }
+  .opt {
+    background:#fdf3e3; border-radius:12px; padding:16px; cursor:pointer;
+    border:2px solid #e8d8c0; font-size:18px; font-weight:600; transition:.15s;
+  }
+  .opt:hover { border-color:#e07856; }
+  .opt.correct { border-color:#9ccb8a; background:#eef7ea; }
+  .opt.wrong { border-color:#e8a08a; background:#fdeaea; }
+  .opt:disabled { opacity:.6; cursor:default; }
+  #quiz-progress { margin-top:18px; color:#b0a08a; font-size:15px; }
+  #quiz-score { color:#e07856; font-weight:700; }
+  #quiz-done { margin-top:20px; font-size:20px; color:#e07856; font-weight:700; }
+  #quiz-review { margin-top:14px; text-align:left; }
+  #quiz-review .review-title { font-size:15px; color:#e07856; font-weight:700; margin-bottom:8px; }
+  #quiz-review .review-item {
+    background:#fdf3e3; border:1px solid #e8d8c0; border-radius:10px;
+    padding:8px 12px; font-size:14px; color:#4a3f35; margin-bottom:6px; line-height:1.5;
+    word-break:break-word;
+  }
+  #quiz-review .review-item.ok { border-color:#9ccb8a; background:#eef7ea; }
+  #quiz-review .review-item.bad { border-color:#e8a08a; background:#fdeaea; }
+  #quiz-review .review-main { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  #quiz-review .review-cn { font-weight:700; font-size:15px; }
+  #quiz-review .review-en { color:#a08a76; font-size:13px; }
+  #quiz-review .review-mark { margin-left:auto; font-size:14px; white-space:nowrap; }
+  #quiz-review .review-sub { font-size:13px; color:#8a6a5a; margin-top:3px; }
+  #quiz-stats { margin-top:14px; font-size:14px; color:#a08a76; }
+  #quiz-restart {
+    margin-top:16px; padding:10px 26px; border:none; border-radius:30px;
+    background:#e07856; color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+  }
+  .foot { text-align:center; color:#b0a08a; font-size:13px; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐹 Yilia 的单词闯关</h1>
+  <p>Topic: A Mother Turtle's Journey Home · 18 words</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-panel="cards">📇 单词卡片</div>
+  <div class="tab" data-panel="match">🧩 连连看</div>
+  <div class="tab" data-panel="quiz">🎯 选择题</div>
+</div>
+
+<main>
+  <!-- 卡片 -->
+  <div class="panel active" id="panel-cards">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- 连连看 -->
+  <div class="panel" id="panel-match">
+    <div id="match-wrap">
+      <div id="match-col"></div>
+      <div id="match-status"></div>
+      <button id="match-restart" onclick="renderMatch()">🔄 Rematch</button>
+    </div>
+  </div>
+
+  <!-- 选择题 -->
+  <div class="panel" id="panel-quiz">
+    <div id="quiz-card"></div>
+  </div>
+</main>
+
+<div class="foot">每课更新 · 记牢新单词，上课更轻松 🌟</div>
+
+<script>
+/* ---- 音效引擎 (Web Audio API 合成，无需外部文件) ---- */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playNote(freq, start, dur, type='sine', vol=0.18) {
+  const ctx = ensureAudio(); if (!ctx) return;
+  const t = ctx.currentTime + start;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function soundCorrect() {
+  playNote(523.25, 0, 0.15, 'triangle', 0.2);  // C5
+  playNote(659.25, 0.12, 0.18, 'triangle', 0.2); // E5
+  playNote(783.99, 0.26, 0.25, 'triangle', 0.2); // G5
+}
+function soundWrong() {
+  playNote(311.13, 0, 0.18, 'sawtooth', 0.14); // Eb4
+  playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14); // Bb3
+}
+
+/* ---- 单词发音 ----
+   方案1：浏览器原生 speechSynthesis（Mac/iPad/iPhone Safari 支持，无需网络）
+   方案2：不支持时降级为在线 TTS 音频（有道词典发音，微信内置浏览器/安卓 WebView 可用）
+   注意：微信内置浏览器不支持 speechSynthesis，会触发方案2 */
+function warmVoices() {
+  if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+}
+if ('speechSynthesis' in window) {
+  warmVoices();
+  window.speechSynthesis.onvoiceschanged = warmVoices;
+}
+function fallbackSpeak(text) {
+  // 在线发音：有道词典 TTS（美音），无需 key，微信内可播放
+  var url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=2';
+  try {
+    var a = new Audio(url);
+    a.play().catch(function() {
+      alert('发音失败：请检查网络，或用系统浏览器（Safari/Chrome）打开本页');
+    });
+  } catch(e) {
+    alert('当前浏览器不支持语音播放，建议用系统浏览器（Safari/Chrome）打开本页');
+  }
+}
+function speakWord(text) {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
+      var voices = window.speechSynthesis.getVoices();
+      var en = voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('en') === 0; });
+      if (en) u.voice = en;
+      // 部分安卓浏览器 speechSynthesis 存在但不发声，报错时自动降级
+      u.onerror = function() { fallbackSpeak(text); };
+      window.speechSynthesis.speak(u);
+      // Chrome 偶发 speak 后无声音但不触发 onerror：speak 后 2.5s 内若未开始播放则降级
+      var started = false;
+      u.onstart = function() { started = true; };
+      setTimeout(function() { if (!started) { try { window.speechSynthesis.cancel(); } catch(e){} fallbackSpeak(text); } }, 2500);
+      return;
+    } catch(e) {}
+  }
+  fallbackSpeak(text);
+}
+
+/* ---- 本地统计 ----
+   套题标识：取当前页面所在目录名（如 2026-11-09），同一期 index.html / en.html 共用一套统计 */
+const SET_ID = (function(){
+  try {
+    const segs = location.pathname.split('/').filter(Boolean);
+    const dir = segs.length >= 2 ? segs[segs.length-2] : '';
+    if (dir) return dir.replace(/[^A-Za-z0-9_-]/g,'') || 'default';
+  } catch(e){}
+  return 'default';
+})();
+const LS_KEY = 'yilia_words_stats_' + SET_ID;      // localStorage：本套题累计完成记录
+const SS_KEY = 'yilia_words_session_' + SET_ID;    // sessionStorage：本次打开页面已玩次数
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveRecords(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function sessionPlays() {
+  try { return parseInt(sessionStorage.getItem(SS_KEY) || '0', 10) || 0; } catch(e){ return 0; }
+}
+/* 完成一局（连连看/选择题）时调用：写一条记录到本地，并累计本次打开页面的游玩次数 */
+function addRecord(rec) {
+  const arr = loadRecords();
+  arr.push(Object.assign({ ts: Date.now() }, rec));
+  saveRecords(arr);
+  try { sessionStorage.setItem(SS_KEY, String(sessionPlays() + 1)); } catch(e){}
+}
+function statsHTML() {
+  return '📊 Played <b>' + sessionPlays() + '</b> time(s) this session · This set completed <b>' + loadRecords().length + '</b> time(s) in total';
+}
+
+const WORDS = [{"word":"pollution","phonetic":"/pəˈluːʃn/","meaning":"dirty things that harm nature","example":"To have such pollution on the sea is not safe for the sea creatures.","hint":"pollute + -tion → making the sea dirty"},{"word":"plastic bag","phonetic":"/ˈplæstɪk bæɡ/","meaning":"a thin bag made of plastic","example":"The girl and her mother found a plastic bag floating in the sea.","hint":"plastic + bag → dangerous trash floating in the sea"},{"word":"grab","phonetic":"/ɡræb/","meaning":"to take something quickly with your hand","example":"They tried to grab the plastic bag because it was not safe.","hint":"the girl grabbed the plastic bag from the sea"},{"word":"clog","phonetic":"/klɒɡ/","meaning":"to block something so nothing can pass","example":"A plastic bag could choke a turtle or clog its belly.","hint":"a plastic bag could clog a turtle's belly"},{"word":"jaws","phonetic":"/dʒɔːz/","meaning":"the mouth parts of an animal","example":"As she grows, her jaws crack open crabs and clams.","hint":"the turtle cracks crabs and clams with her jaws"},{"word":"restless","phonetic":"/ˈrestləs/","meaning":"unable to rest; wanting to move","example":"Until one day she feels restless. It is time for her to travel far and fast.","hint":"rest + less → no rest → the turtle wanted to travel"},{"word":"shark","phonetic":"/ʃɑːrk/","meaning":"a big sea animal that hunts other animals","example":"Three sharks see her.","hint":"three sharks saw the turtle"},{"word":"pursue","phonetic":"/pərˈsuː/","meaning":"to chase after someone or something","example":"The shark pursues her.","hint":"the shark pursues the turtle"},{"word":"escape","phonetic":"/ɪˈskeɪp/","meaning":"to get away from danger","example":"She swims faster and faster and finally escapes.","hint":"the turtle finally escapes from the shark"},{"word":"swept","phonetic":"/swept/","meaning":"carried away by water (past of sweep)","example":"In an instant, she is swept into a net.","hint":"she was swept into a net"},{"word":"net","phonetic":"/net/","meaning":"a trap made of ropes for catching fish","example":"She is swept into a net. It drags her down, down.","hint":"the net dragged the turtle down"},{"word":"surface","phonetic":"/ˈsɜːrfɪs/","meaning":"to come up to the top of the water","example":"She needs to surface to breathe.","hint":"she needs to surface to breathe"},{"word":"breathe","phonetic":"/briːð/","meaning":"to take air in and out","example":"She needs to surface to breathe.","hint":"she needs to surface to breathe"},{"word":"tumble","phonetic":"/ˈtʌmbl/","meaning":"to fall or roll over and over","example":"The boat pulls, tumbling her to the back of the net.","hint":"the boat pulled, tumbling her in the net"},{"word":"escape hatch","phonetic":"/ɪˈskeɪp hætʃ/","meaning":"a small door to get out and escape","example":"She slips through an escape hatch.","hint":"she slips through an escape hatch"},{"word":"weathered","phonetic":"/ˈweðərd/","meaning":"worn by wind and weather; old and rough","example":"Months before, weathered hands had sewn that hatch onto the net.","hint":"weathered hands had sewn the hatch"},{"word":"shaken","phonetic":"/ˈʃeɪkən/","meaning":"frightened; shocked (past participle of shake)","example":"Shaken but safe, the turtle swims on.","hint":"shaken but safe, the turtle swims on"},{"word":"lay eggs","phonetic":"/leɪ eɡz/","meaning":"to produce eggs","example":"Now she is a mother turtle about to lay her eggs.","hint":"the mother turtle comes back to lay her eggs"}];
+let quizIdx = 0, quizScore = 0, quizTotal = 0, quizOptions = [], quizLog = [];
+
+/* ---- 标签切换 ---- */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+  });
+});
+
+/* ---- 卡片模式 ---- */
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = WORDS.map(w => `
+    <div class="card">
+      <div class="self"></div>
+      <div class="en-row">
+        <span class="en">${w.word}</span>
+        <button class="speak" data-word="${w.word}" title="Play pronunciation">🔊</button>
+      </div>
+      <div class="ph">${w.phonetic}</div>
+      <div class="meaning">${w.meaning}</div>
+      <div class="example">📖 ${w.example}</div>
+    </div>`).join('');
+  // 发音按钮（事件委托）
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('.speak');
+    if (btn) { e.stopPropagation(); speakWord(btn.dataset.word); }
+  });
+  // 自己评测：认识/不认识
+  grid.querySelectorAll('.card').forEach((card, i) => {
+    const self = card.querySelector('.self');
+    const known = document.createElement('span');
+    known.className = 'k'; known.textContent = '✅'; known.title = 'I know it';
+    const unknown = document.createElement('span');
+    unknown.className = 'k'; unknown.textContent = '🤔'; unknown.title = 'Not sure';
+    self.appendChild(known); self.appendChild(unknown);
+    known.onclick = e => { e.stopPropagation(); card.classList.remove('unknown'); card.classList.add('known'); };
+    unknown.onclick = e => { e.stopPropagation(); card.classList.remove('known'); card.classList.add('unknown'); };
+  });
+}
+
+/* ---- 连连看 ---- */
+let matchState = [];
+function shuffle(a) { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function renderMatch() {
+  matchState = WORDS.map(w => ({...w, matched:false}));
+  const left = shuffle(matchState.map(w => w.word));
+  const right = shuffle(matchState.map(w => w.meaning));
+  const col = document.getElementById('match-col');
+  col.innerHTML = `
+    <div class="mcol"><h3>English</h3><div id="ml">${left.map((w,i)=>`<div class="mtile" data-side="l" data-idx="${i}" data-word="${w}">${w}</div>`).join('')}</div></div>
+    <div class="mcol"><h3>Chinese</h3><div id="mr">${right.map((m,i)=>`<div class="mtile" data-side="r" data-idx="${i}" data-word="${m}">${m}</div>`).join('')}</div></div>`;
+  let selL = null, selR = null;
+  const status = document.getElementById('match-status');
+  function checkDone() {
+    if (matchState.every(w => w.matched)) {
+      addRecord({ type: 'match' });
+      status.innerHTML = '🎉 All matched! Great job!<span class="done-stats">' + statsHTML() + '</span>';
+    }
+  }
+  col.addEventListener('click', e => {
+    const tile = e.target.closest('.mtile');
+    if (!tile || tile.classList.contains('matched')) return;
+    const word = tile.dataset.word;
+    const side = tile.dataset.side;
+    if (side === 'l') {
+      if (selL) selL.classList.remove('sel');
+      selL = tile; tile.classList.add('sel');
+    } else {
+      if (selR) selR.classList.remove('sel');
+      selR = tile; tile.classList.add('sel');
+    }
+    if (selL && selR) {
+      const lw = selL.dataset.word, rw = selR.dataset.word;
+      const target = matchState.find(w => w.word === lw);
+      if (target && target.meaning === rw) {
+        selL.classList.add('matched'); selR.classList.add('matched');
+        selL.classList.remove('sel'); selR.classList.remove('sel');
+        target.matched = true;
+        status.textContent = '✅ Correct!';
+        soundCorrect();
+        selL = selR = null; checkDone();
+      } else {
+        status.textContent = '❌ Not quite, try again';
+        soundWrong();
+        setTimeout(() => { selL.classList.remove('sel'); selR.classList.remove('sel'); selL=selR=null; }, 500);
+      }
+    }
+  });
+  status.textContent = 'Click an English word, then its Chinese meaning';
+}
+
+/* ---- 选择题 ---- */
+function renderQuiz() {
+  quizIdx = 0; quizScore = 0; quizTotal = WORDS.length; quizOptions = []; quizLog = [];
+  showQuizQ();
+}
+function showQuizQ() {
+  const card = document.getElementById('quiz-card');
+  if (quizIdx >= quizTotal) {
+    // 记录一次完整作答
+    addRecord({ type: 'quiz', score: quizScore, total: quizTotal });
+    const wrong = quizLog.filter(r => !r.ok);
+    let review = '';
+    if (wrong.length === 0) {
+      review = '<div class="review-item ok"><div class="review-main"><span class="review-cn">🎉 全部答对，太棒了！</span><span class="review-en">All correct, amazing!</span></div></div>';
+    } else {
+      review = '<div class="review-title">📋 Review: ❌ means review these ' + wrong.length + ' words again</div>';
+    }
+    // 完整回顾列表（每行：中文释义 + 下方英文单词，外教也能看懂；答错的标 ❌ 重点记忆）
+    review += quizLog.map((r, i) => {
+      const w = WORDS.find(x => x.word === r.word) || { word: r.word, meaning: r.correct };
+      const mark = r.ok ? '<span class="review-mark">✅</span>'
+                        : '<span class="review-mark">❌ Review</span>';
+      const sub = r.ok
+        ? '<div class="review-sub"><span class="review-en">' + w.word + '</span></div>'
+        : '<div class="review-sub"><span class="review-en">' + w.word + '</span> · You picked「' + r.you + '」, correct:「' + r.correct + '」</div>';
+      return '<div class="review-item ' + (r.ok ? 'ok' : 'bad') + '">' +
+        '<div class="review-main"><span>' + (i+1) + '.</span>' +
+        '<span class="review-cn">' + w.meaning + '</span>' + mark + '</div>' + sub + '</div>';
+    }).join('');
+    card.innerHTML = `
+      <div id="quiz-done">🏆 Done! You got ${quizScore} / ${quizTotal} correct</div>
+      <div id="quiz-review">${review}</div>
+      <div id="quiz-stats">${statsHTML()}</div>
+      <button id="quiz-restart" onclick="renderQuiz()">Play again</button>`;
+    return;
+  }
+  const w = WORDS[quizIdx];
+  const isEn2Zh = Math.random() < 0.5;
+  const opts = shuffle([...WORDS]);
+  const correct = w.meaning;
+  const choices = [w, ...opts.filter(o => o.meaning !== w.meaning).slice(0,3)];
+  shuffle(choices);
+  card.innerHTML = `
+    <div id="quiz-word">${isEn2Zh ? w.word : w.meaning}</div>
+    <div id="quiz-ph">${isEn2Zh ? w.phonetic : ''}</div>
+    <div id="quiz-q">${isEn2Zh ? 'Choose the correct Chinese meaning' : 'Which English word matches this meaning?'}</div>
+    <div class="opts">${choices.map(c => `<div class="opt" data-m="${c.meaning}" data-w="${c.word}">${isEn2Zh ? c.meaning : c.word}</div>`).join('')}</div>
+    <div id="quiz-progress">Question ${quizIdx+1} / ${quizTotal} · Score <span id="quiz-score">${quizScore}</span></div>`;
+  let answered = false;
+  card.querySelectorAll('.opt').forEach(o => {
+    o.addEventListener('click', () => {
+      if (answered) return; answered = true;
+      const ok = (isEn2Zh ? o.dataset.m === correct : o.dataset.w === w.word);
+      quizLog.push({ word: w.word, ok, you: isEn2Zh ? o.dataset.m : o.dataset.w, correct: isEn2Zh ? w.meaning : w.word });
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      if (ok) { o.classList.add('correct'); quizScore++; soundCorrect(); }
+      else { o.classList.add('wrong'); soundWrong();
+        card.querySelectorAll('.opt').forEach(x => { if (isEn2Zh ? x.dataset.m===correct : x.dataset.w===w.word) x.classList.add('correct'); });
+      }
+      document.getElementById('quiz-score').textContent = quizScore;
+      setTimeout(() => { quizIdx++; showQuizQ(); }, 1100);
+    });
+  });
+}
+
+renderCards();
+renderMatch();
+renderQuiz();
+</script>
+</body>
+</html>
