@@ -187,7 +187,10 @@ function soundWrong() {
   playNote(233.08, 0.15, 0.28, 'sawtooth', 0.14); // Bb3
 }
 
-/* ---- 单词发音 (浏览器 Web Speech API，无需外部文件) ---- */
+/* ---- 单词发音 ----
+   方案1：浏览器原生 speechSynthesis（Mac/iPad/iPhone Safari 支持，无需网络）
+   方案2：不支持时降级为在线 TTS 音频（有道词典发音，微信内置浏览器/安卓 WebView 可用）
+   注意：微信内置浏览器不支持 speechSynthesis，会触发方案2 */
 function warmVoices() {
   if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
 }
@@ -195,17 +198,38 @@ if ('speechSynthesis' in window) {
   warmVoices();
   window.speechSynthesis.onvoiceschanged = warmVoices;
 }
-function speakWord(text) {
-  if (!('speechSynthesis' in window)) { alert('Your browser does not support speech'); return; }
+function fallbackSpeak(text) {
+  // 在线发音：有道词典 TTS（美音），无需 key，微信内可播放
+  var url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=2';
   try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const en = voices.find(v => v.lang && v.lang.toLowerCase().indexOf('en') === 0);
-    if (en) u.voice = en;
-    window.speechSynthesis.speak(u);
-  } catch(e) {}
+    var a = new Audio(url);
+    a.play().catch(function() {
+      alert('发音失败：请检查网络，或用系统浏览器（Safari/Chrome）打开本页');
+    });
+  } catch(e) {
+    alert('当前浏览器不支持语音播放，建议用系统浏览器（Safari/Chrome）打开本页');
+  }
+}
+function speakWord(text) {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1;
+      var voices = window.speechSynthesis.getVoices();
+      var en = voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('en') === 0; });
+      if (en) u.voice = en;
+      // 部分安卓浏览器 speechSynthesis 存在但不发声，报错时自动降级
+      u.onerror = function() { fallbackSpeak(text); };
+      window.speechSynthesis.speak(u);
+      // Chrome 偶发 speak 后无声音但不触发 onerror：speak 后 2.5s 内若未开始播放则降级
+      var started = false;
+      u.onstart = function() { started = true; };
+      setTimeout(function() { if (!started) { try { window.speechSynthesis.cancel(); } catch(e){} fallbackSpeak(text); } }, 2500);
+      return;
+    } catch(e) {}
+  }
+  fallbackSpeak(text);
 }
 
 /* ---- 本地统计 ----
